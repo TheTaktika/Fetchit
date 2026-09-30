@@ -1,8 +1,9 @@
-package org.example;
+package org.example.scanner;
 
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.AudioFileIO;
 import org.jaudiotagger.tag.FieldKey;
+
 import java.io.File;
 import java.util.HashSet;
 import java.util.Set;
