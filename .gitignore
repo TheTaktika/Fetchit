@@ -63,3 +63,5 @@ ffprobe.exe
 ffplay.exe
 deno.exe
 /.env.example
+bundle/*.exe
+bundle/*.dll

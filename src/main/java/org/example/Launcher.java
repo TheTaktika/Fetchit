@@ -2,8 +2,8 @@ package org.example;
 
 import javafx.application.Application;
 
-public class Main {
+public class Launcher {
     public static void main(String[] args) {
-        Launcher.main(args);
+        Application.launch(FetchItApplication.class, args);
     }
 }

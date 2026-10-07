@@ -9,8 +9,8 @@
     <version>1.0-SNAPSHOT</version>
 
     <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <javafx.version>22.0.1</javafx.version>
         <jackson.version>2.19.0</jackson.version>
@@ -20,19 +20,16 @@
     </properties>
 
     <dependencies>
-        <!-- ==================== JavaFX ==================== -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
             <version>${javafx.version}</version>
         </dependency>
-        <!-- FXML -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-fxml</artifactId>
             <version>${javafx.version}</version>
         </dependency>
-        <!-- Графика и медиа -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-media</artifactId>
@@ -43,16 +40,11 @@
             <artifactId>javafx-graphics</artifactId>
             <version>${javafx.version}</version>
         </dependency>
-
-        <!-- ==================== Работа с метаданными ==================== -->
         <dependency>
             <groupId>net.jthink</groupId>
             <artifactId>jaudiotagger</artifactId>
             <version>3.0.1</version>
         </dependency>
-
-        <!-- ==================== JSON-парсинг ==================== -->
-        <!-- Jackson -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
@@ -64,9 +56,6 @@
             <artifactId>gson</artifactId>
             <version>${gson.version}</version>
         </dependency>
-
-        <!-- ==================== Логирование ==================== -->
-        <!-- SLF4J — фасад логирования, Logback — реализация -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
@@ -77,16 +66,12 @@
             <artifactId>logback-classic</artifactId>
             <version>1.5.18</version>
         </dependency>
-
-        <!-- ==================== Тестирование ==================== -->
-        <!-- JUnit 5 — unit-тесты для сервисов -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
-        <!-- Testcontainers — интеграционные тесты с реальными сервисами -->
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
@@ -97,17 +82,15 @@
 
     <build>
         <plugins>
-            <!-- Компилятор Java 17 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.13.0</version>
                 <configuration>
-                    <source>17</source>
-                    <target>17</target>
+                    <source>21</source>
+                    <target>21</target>
                 </configuration>
             </plugin>
-            <!-- Плагин для запуска JavaFX-приложения -->
             <plugin>
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
@@ -115,6 +98,44 @@
                 <configuration>
                     <mainClass>org.example.Main</mainClass>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.panteleyev</groupId>
+                <artifactId>jpackage-maven-plugin</artifactId>
+                <version>1.8.0</version>
+                <executions>
+                    <execution>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>jpackage</goal>
+                        </goals>
+                        <configuration>
+                            <name>FetchIt</name>
+                            <mainClass>org.example.Launcher</mainClass>
+                            <mainJar>FetchIt-1.0-SNAPSHOT.jar</mainJar>
+                            <input>${project.build.directory}</input>
+                            <type>EXE</type>
+                            <winShortcut>true</winShortcut>
+                            <icon>${project.basedir}/bundle/icon.ico</icon>
+                            <appContentPaths>
+                                <appContentPath>${project.basedir}/bundle</appContentPath>
+                            </appContentPaths>
+                            <destination>${project.build.directory}/installer</destination>
+                            <appVersion>1.0.0</appVersion>
+                            <winConsole>true</winConsole>
+                            <modulePaths>
+                                <modulePath>C:\Java\IntelliJ IDEA Community Edition 2025.3.3\plugins\javafx-jmods-21.0.12</modulePath>
+                            </modulePaths>
+                            <addModules>
+                                <addModule>javafx.controls</addModule>
+                                <addModule>javafx.fxml</addModule>
+                                <addModule>javafx.graphics</addModule>
+                                <addModule>javafx.base</addModule>
+                                <addModule>javafx.media</addModule>
+                            </addModules>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

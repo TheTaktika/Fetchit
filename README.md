@@ -13,7 +13,7 @@
 
 - JDK 17 или выше
 - Maven 3.8+
-- `yt-dlp`, `ffmpeg` и `ffprobe`, доступные в `PATH`
+- `yt-dlp`, `ffmpeg`, `ffprobe`, `Deno`, доступные в `PATH`
 
 ## Сборка и запуск
 
