@@ -32,6 +32,16 @@ jobs:
           }
         shell: pwsh
 
+      - name: Download JavaFX jmods
+        run: |
+           Invoke-WebRequest -Uri "https://download2.gluonhq.com/openjfx/21.0.12/openjfx-21.0.12_windows-x64_bin-jmods.zip" -OutFile "javafx-jmods.zip"
+           Expand-Archive -Path "javafx-jmods.zip" -DestinationPath "javafx-jmods-temp" -Force
+           $dir = Get-ChildItem "javafx-jmods-temp" -Directory | Select-Object -First 1
+           Move-Item $dir.FullName "javafx-jmods-21"
+           Remove-Item -Recurse -Force "javafx-jmods-temp", "javafx-jmods.zip"
+           Get-ChildItem "javafx-jmods-21" | Select-Object -First 5
+        shell: pwsh
+
       - name: Download bundle binaries
         run: |
           New-Item -ItemType Directory -Force -Path "bundle" | Out-Null

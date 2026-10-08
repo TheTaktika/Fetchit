@@ -65,3 +65,4 @@ deno.exe
 /.env.example
 bundle/*.exe
 bundle/*.dll
+/javafx-jmods-21/

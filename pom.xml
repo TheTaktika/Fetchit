@@ -12,6 +12,7 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <javafx.jmods.path>${project.basedir}/javafx-jmods-21</javafx.jmods.path>
         <javafx.version>22.0.1</javafx.version>
         <jackson.version>2.19.0</jackson.version>
         <gson.version>2.12.1</gson.version>
@@ -124,7 +125,7 @@
                             <appVersion>1.0.0</appVersion>
                             <winConsole>true</winConsole>
                             <modulePaths>
-                                <modulePath>C:\Java\IntelliJ IDEA Community Edition 2025.3.3\plugins\javafx-jmods-21.0.12</modulePath>
+                                <modulePath>${javafx.jmods.path}</modulePath>
                             </modulePaths>
                             <addModules>
                                 <addModule>javafx.controls</addModule>
