@@ -15,78 +15,6 @@ import java.util.function.Consumer;
 
 public class YtDlpService {
 
-    public DownloadStats download(DownloadConfig config,
-                                  Consumer<String> onOutput,
-                                  Consumer<ProgressUpdate> onProgress) {
-        OutputParser parser = new OutputParser();
-
-        try {
-            List<String> command = new ArrayList<>();
-            command.add(resolveBundledTool("yt-dlp.exe"));
-
-            if (config.hasProxy()) {
-                command.add("--proxy");
-                command.add(config.getProxy());
-            }
-
-            command.add("-x");
-            command.add("--audio-format");
-            command.add("mp3");
-            command.add("--audio-quality");
-            command.add("0");
-            command.add("--embed-thumbnail");
-            command.add("--add-metadata");
-            command.add("--parse-metadata");
-            command.add("%(id)s:%(meta_comment)s");
-            command.add("-o");
-            command.add(config.getOutputDir() + "/%(title)s.%(ext)s");
-            command.add(config.getUrl());
-
-            onOutput.accept("[CMD] " + String.join(" ", command));
-
-            ProcessBuilder pb = new ProcessBuilder(command);
-            Process process = pb.start();
-
-            Thread stdoutThread = new Thread(() -> {
-                try (BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(process.getInputStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        onOutput.accept("[OUT] " + line);
-                        handleParsedLine(parser, line, onProgress);
-                    }
-                } catch (Exception e) {
-                    onOutput.accept("[ERR] Ошибка чтения stdout: " + e.getMessage());
-                }
-            });
-
-            Thread stderrThread = new Thread(() -> {
-                try (BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(process.getErrorStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        onOutput.accept("[ERR] " + line);
-                        handleParsedLine(parser, line, onProgress);
-                    }
-                } catch (Exception e) {
-                    onOutput.accept("[ERR] Ошибка чтения stderr: " + e.getMessage());
-                }
-            });
-
-            stdoutThread.start();
-            stderrThread.start();
-
-            process.waitFor();
-            stdoutThread.join();
-            stderrThread.join();
-
-        } catch (Exception e) {
-            onOutput.accept("[FATAL] " + e.getMessage());
-        }
-
-        return parser.getStats();
-    }
-
     public int update(Consumer<String> onOutput) {
         try {
             ProcessBuilder pb = new ProcessBuilder("yt-dlp", "-U");
@@ -148,40 +76,6 @@ public class YtDlpService {
         return toolName;
     }
 
-    public int getPlaylistItemCount(String url, Consumer<String> onOutput) {
-        try {
-            List<String> command = new ArrayList<>();
-            command.add(resolveBundledTool("yt-dlp.exe"));
-            command.add("--flat-playlist");
-            command.add("--print");
-            command.add("%(id)s");
-            command.add(url);
-
-            ProcessBuilder pb = new ProcessBuilder(command);
-            Process process = pb.start();
-
-            int count = 0;
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    if (!line.isBlank()) {
-                        count++;
-                    }
-                }
-            }
-            try (BufferedReader ignored = new BufferedReader(
-                    new InputStreamReader(process.getErrorStream()))) {
-                while (ignored.readLine() != null) { /* ничего */ }
-            }
-            process.waitFor();
-            return count > 0 ? count : -1;
-        } catch (Exception e) {
-            onOutput.accept("[WARN] Не удалось определить размер плейлиста: " + e.getMessage());
-            return -1;
-        }
-    }
-
     public List<String> getPlaylistVideoIds(String url, Consumer<String> onOutput) {
         List<String> ids = new ArrayList<>();
         try {
@@ -208,8 +102,7 @@ public class YtDlpService {
 
             try (BufferedReader ignored = new BufferedReader(
                     new InputStreamReader(process.getErrorStream()))) {
-                while (ignored.readLine() != null) {
-                }
+                ignored.lines().forEach(l -> {});
             }
 
             process.waitFor();
@@ -241,7 +134,7 @@ public class YtDlpService {
                     config.getProxy()
             );
 
-            DownloadStats stats = downloadFromFile(listConfig, onOutput, onProgress);
+            DownloadStats stats = downloadFromFile(listConfig, videoIds.size(), onOutput, onProgress);
             stats.setTotalItems(videoIds.size());
 
             Files.deleteIfExists(tempFile);
@@ -254,9 +147,10 @@ public class YtDlpService {
     }
 
     private DownloadStats downloadFromFile(DownloadConfig config,
+                                           int expectedTotal,
                                            Consumer<String> onOutput,
                                            Consumer<ProgressUpdate> onProgress) {
-        OutputParser parser = new OutputParser();
+        OutputParser parser = new OutputParser(expectedTotal);
         try {
             List<String> command = new ArrayList<>();
             command.add(resolveBundledTool("yt-dlp.exe"));
