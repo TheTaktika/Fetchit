@@ -10,6 +10,9 @@ public class DownloadStats {
     private int errorsCount = 0;
     private final List<String> errorMessages = new ArrayList<>();
 
+    private int totalItems = 0;
+    private int completedItems = 0;
+
     public void incrementDownloaded() {
         downloadedCount++;
     }
@@ -26,6 +29,14 @@ public class DownloadStats {
         errorMessages.add(message);
     }
 
+    public void setTotalItems(int totalItems) {
+        this.totalItems = totalItems;
+    }
+
+    public void incrementCompleted() {
+        completedItems++;
+    }
+
     public int getDownloadedCount() {
         return downloadedCount;
     }
@@ -38,12 +49,23 @@ public class DownloadStats {
         return errorsCount;
     }
 
+    public int getTotalItems() {
+        return totalItems;
+    }
+
+    public int getCompletedItems() {
+        return completedItems;
+    }
+
     public List<String> getErrorMessages() {
-        return new ArrayList<>(errorMessages); // возвращаем копию
+        return new ArrayList<>(errorMessages);
     }
 
     public String toSummary() {
         StringBuilder sb = new StringBuilder();
+        if (totalItems > 0) {
+            sb.append("Всего в плейлисте: ").append(totalItems).append("\n");
+        }
         sb.append("Скачано: ").append(downloadedCount).append("\n");
         sb.append("Пропущено (уже есть): ").append(skippedCount).append("\n");
         sb.append("Ошибок: ").append(errorsCount).append("\n");

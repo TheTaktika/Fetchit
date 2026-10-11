@@ -2,6 +2,7 @@ package org.example.service;
 
 import org.example.model.DownloadConfig;
 import org.example.model.DownloadStats;
+import org.example.model.ProgressUpdate;
 import org.example.parser.OutputParser;
 
 import java.io.BufferedReader;
@@ -14,7 +15,7 @@ public class YtDlpService {
 
     public DownloadStats download(DownloadConfig config,
                                   Consumer<String> onOutput,
-                                  Consumer<Double> onProgress) {
+                                  Consumer<ProgressUpdate> onProgress) {
         OutputParser parser = new OutputParser();
 
         try {
@@ -128,15 +129,54 @@ public class YtDlpService {
         }
     }
 
-    private void handleParsedLine(OutputParser parser, String line, Consumer<Double> onProgress) {
+    private void handleParsedLine(OutputParser parser, String line, Consumer<ProgressUpdate> onProgress) {
         double percent = parser.parseLine(line);
         if (percent >= 0) {
-            onProgress.accept(percent);
+            DownloadStats stats = parser.getStats();
+            onProgress.accept(new ProgressUpdate(
+                    percent,
+                    stats.getCompletedItems(),
+                    stats.getTotalItems()
+            ));
         }
     }
 
     private String resolveBundledTool(String toolName) {
         // TODO: искать бинарник в папке bundle/ рядом с приложением
         return toolName;
+    }
+
+    public int getPlaylistItemCount(String url, Consumer<String> onOutput) {
+        try {
+            List<String> command = new ArrayList<>();
+            command.add(resolveBundledTool("yt-dlp.exe"));
+            command.add("--flat-playlist");
+            command.add("--print");
+            command.add("%(id)s");
+            command.add(url);
+
+            ProcessBuilder pb = new ProcessBuilder(command);
+            Process process = pb.start();
+
+            int count = 0;
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (!line.isBlank()) {
+                        count++;
+                    }
+                }
+            }
+            try (BufferedReader ignored = new BufferedReader(
+                    new InputStreamReader(process.getErrorStream()))) {
+                while (ignored.readLine() != null) { /* ничего */ }
+            }
+            process.waitFor();
+            return count > 0 ? count : -1;
+        } catch (Exception e) {
+            onOutput.accept("[WARN] Не удалось определить размер плейлиста: " + e.getMessage());
+            return -1;
+        }
     }
 }
