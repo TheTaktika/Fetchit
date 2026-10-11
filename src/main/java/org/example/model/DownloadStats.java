@@ -5,6 +5,8 @@ import java.util.List;
 
 public class DownloadStats {
 
+    private int playlistTotal = 0;
+    private int alreadyOnDisk = 0;
     private int downloadedCount = 0;
     private int skippedCount = 0;
     private int errorsCount = 0;
@@ -12,6 +14,22 @@ public class DownloadStats {
 
     private int totalItems = 0;
     private int completedItems = 0;
+
+    public void setPlaylistTotal(int n) {
+        this.playlistTotal = n;
+    }
+
+    public void setAlreadyOnDisk(int n) {
+        this.alreadyOnDisk = n;
+    }
+
+    public int getPlaylistTotal() {
+        return playlistTotal;
+    }
+
+    public int getAlreadyOnDisk() {
+        return alreadyOnDisk;
+    }
 
     public void incrementDownloaded() {
         downloadedCount++;
@@ -63,16 +81,22 @@ public class DownloadStats {
 
     public String toSummary() {
         StringBuilder sb = new StringBuilder();
-        if (totalItems > 0) {
-            sb.append("Всего в плейлисте: ").append(totalItems).append("\n");
+        if (getPlaylistTotal() > 0) {
+            sb.append("Всего в плейлисте: ").append(getPlaylistTotal()).append("\n");
         }
+        if (getAlreadyOnDisk() > 0) {
+            sb.append("Уже было на диске: ").append(getAlreadyOnDisk()).append("\n");
+        }
+        sb.append("К загрузке: ").append(downloadedCount + skippedCount + errorsCount).append("\n");
         sb.append("Скачано: ").append(downloadedCount).append("\n");
-        sb.append("Пропущено (уже есть): ").append(skippedCount).append("\n");
+        if (skippedCount > 0) {
+            sb.append("Пропущено: ").append(skippedCount).append("\n");
+        }
         sb.append("Ошибок: ").append(errorsCount).append("\n");
 
-        if (!errorMessages.isEmpty()) {
+        if (!getErrorMessages().isEmpty()) {
             sb.append("\nОшибки:\n");
-            for (String msg : errorMessages) {
+            for (String msg : getErrorMessages()) {
                 sb.append("  • ").append(msg).append("\n");
             }
         }

@@ -149,35 +149,44 @@ public class FetchItApplication extends Application {
             protected DownloadStats call() {
                 DownloaderScanner scanner = new DownloaderScanner();
                 Set<String> downloadedIds = scanner.scanDownloadedIds(config.getOutputDir());
-                Platform.runLater(() ->
-                        appendOutput("Уже скачано: " + downloadedIds.size() + "\n"));
 
                 List<String> allIds = ytDlpService.getPlaylistVideoIds(
                         config.getUrl(),
                         line -> Platform.runLater(() -> appendOutput(line + "\n"))
                 );
-                Platform.runLater(() ->
-                        appendOutput("Всего в плейлисте: " + allIds.size() + "\n"));
 
                 List<String> toDownload = allIds.stream()
                         .filter(id -> !downloadedIds.contains(id))
                         .toList();
 
-                Platform.runLater(() ->
-                        appendOutput("К загрузке: " + toDownload.size() + "\n\n"));
+                long alreadyOnDisk = allIds.stream()
+                        .filter(downloadedIds::contains)
+                        .count();
+
+                Platform.runLater(() -> {
+                    appendOutput("Найдено локальных MP3: " + downloadedIds.size() + "\n");
+                    appendOutput("Всего в плейлисте: " + allIds.size() + "\n");
+                    appendOutput("Уже было на диске: " + alreadyOnDisk + "\n");
+                    appendOutput("К загрузке: " + toDownload.size() + "\n\n");
+                });
 
                 if (toDownload.isEmpty()) {
                     DownloadStats empty = new DownloadStats();
-                    empty.setTotalItems(0);
+                    empty.setPlaylistTotal(allIds.size());
+                    empty.setAlreadyOnDisk((int) alreadyOnDisk);
                     return empty;
                 }
 
-                return ytDlpService.downloadByIds(
+                DownloadStats stats = ytDlpService.downloadByIds(
                         config,
                         toDownload,
                         line -> Platform.runLater(() -> appendOutput(line + "\n")),
                         update -> Platform.runLater(() -> updateProgressBars(update))
                 );
+
+                stats.setPlaylistTotal(allIds.size());
+                stats.setAlreadyOnDisk((int) alreadyOnDisk);
+                return stats;
             }
         };
 
@@ -211,8 +220,7 @@ public class FetchItApplication extends Application {
         fileProgressLabel.setText(String.format("%.0f%%", filePercent));
 
         if (update.totalItems() > 0) {
-            double overall = (update.completedItems() + filePercent / 100.0) / update.totalItems();
-            overall = Math.min(overall, 1.0);
+            double overall = (double) update.completedItems() / update.totalItems();
             totalProgressBar.setProgress(overall);
             totalProgressLabel.setText(String.format("%d/%d (%.0f%%)",
                     update.completedItems(), update.totalItems(), overall * 100));
