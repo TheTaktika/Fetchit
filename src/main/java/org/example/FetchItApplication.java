@@ -20,9 +20,12 @@ import javafx.stage.Stage;
 import org.example.model.DownloadConfig;
 import org.example.model.DownloadStats;
 import org.example.model.ProgressUpdate;
+import org.example.scanner.DownloaderScanner;
 import org.example.service.YtDlpService;
 
 import java.io.File;
+import java.util.List;
+import java.util.Set;
 
 public class FetchItApplication extends Application {
 
@@ -137,25 +140,41 @@ public class FetchItApplication extends Application {
         totalProgressLabel.setText("0%");
         fileProgressLabel.setText("0%");
         summaryLabel.setText("");
+        outputArea.clear();
 
-        appendOutput("\n=== Начинаю загрузку ===\n");
-        appendOutput("URL: " + config.getUrl() + "\n");
-        appendOutput("Папка: " + config.getOutputDir() + "\n");
-        appendOutput("Прокси: " + (config.hasProxy() ? config.getProxy() : "не используется") + "\n\n");
+        appendOutput("=== Проверка уже скачанных файлов ===\n");
 
         Task<DownloadStats> task = new Task<>() {
             @Override
             protected DownloadStats call() {
-                int totalItems = ytDlpService.getPlaylistItemCount(
+                DownloaderScanner scanner = new DownloaderScanner();
+                Set<String> downloadedIds = scanner.scanDownloadedIds(config.getOutputDir());
+                Platform.runLater(() ->
+                        appendOutput("Уже скачано: " + downloadedIds.size() + "\n"));
+
+                List<String> allIds = ytDlpService.getPlaylistVideoIds(
                         config.getUrl(),
                         line -> Platform.runLater(() -> appendOutput(line + "\n"))
                 );
-                if (totalItems > 0) {
-                    Platform.runLater(() -> appendOutput("Найдено видео в плейлисте: " + totalItems + "\n"));
+                Platform.runLater(() ->
+                        appendOutput("Всего в плейлисте: " + allIds.size() + "\n"));
+
+                List<String> toDownload = allIds.stream()
+                        .filter(id -> !downloadedIds.contains(id))
+                        .toList();
+
+                Platform.runLater(() ->
+                        appendOutput("К загрузке: " + toDownload.size() + "\n\n"));
+
+                if (toDownload.isEmpty()) {
+                    DownloadStats empty = new DownloadStats();
+                    empty.setTotalItems(0);
+                    return empty;
                 }
 
-                return ytDlpService.download(
+                return ytDlpService.downloadByIds(
                         config,
+                        toDownload,
                         line -> Platform.runLater(() -> appendOutput(line + "\n")),
                         update -> Platform.runLater(() -> updateProgressBars(update))
                 );
@@ -164,7 +183,11 @@ public class FetchItApplication extends Application {
 
         task.setOnSucceeded(event -> {
             DownloadStats stats = task.getValue();
-            summaryLabel.setText(stats.toSummary());
+            if (stats.getDownloadedCount() == 0 && stats.getErrorsCount() == 0) {
+                summaryLabel.setText("Все видео уже скачаны. Ничего загружать не нужно.\n");
+            } else {
+                summaryLabel.setText(stats.toSummary());
+            }
             totalProgressBar.setProgress(1.0);
             fileProgressBar.setProgress(1.0);
             totalProgressLabel.setText("100%");
@@ -175,8 +198,6 @@ public class FetchItApplication extends Application {
 
         task.setOnFailed(event -> {
             appendOutput("\n=== Ошибка: " + task.getException().getMessage() + " ===\n");
-            totalProgressBar.setProgress(0);
-            fileProgressBar.setProgress(0);
             downloadButton.setDisable(false);
             updateButton.setDisable(false);
         });
