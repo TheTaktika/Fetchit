@@ -1,6 +1,8 @@
 package org.example.service;
 
 import org.example.model.DownloadConfig;
+import org.example.model.DownloadStats;
+import org.example.parser.OutputParser;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -10,10 +12,14 @@ import java.util.function.Consumer;
 
 public class YtDlpService {
 
-    public int download(DownloadConfig config, Consumer<String> onOutput) {
+    public DownloadStats download(DownloadConfig config,
+                                  Consumer<String> onOutput,
+                                  Consumer<Double> onProgress) {
+        OutputParser parser = new OutputParser();
+
         try {
             List<String> command = new ArrayList<>();
-            command.add("yt-dlp");
+            command.add(resolveBundledTool("yt-dlp.exe"));
 
             if (config.hasProxy()) {
                 command.add("--proxy");
@@ -44,6 +50,7 @@ public class YtDlpService {
                     String line;
                     while ((line = reader.readLine()) != null) {
                         onOutput.accept("[OUT] " + line);
+                        handleParsedLine(parser, line, onProgress);
                     }
                 } catch (Exception e) {
                     onOutput.accept("[ERR] Ошибка чтения stdout: " + e.getMessage());
@@ -56,6 +63,7 @@ public class YtDlpService {
                     String line;
                     while ((line = reader.readLine()) != null) {
                         onOutput.accept("[ERR] " + line);
+                        handleParsedLine(parser, line, onProgress);
                     }
                 } catch (Exception e) {
                     onOutput.accept("[ERR] Ошибка чтения stderr: " + e.getMessage());
@@ -65,16 +73,15 @@ public class YtDlpService {
             stdoutThread.start();
             stderrThread.start();
 
-            int exitCode = process.waitFor();
+            process.waitFor();
             stdoutThread.join();
             stderrThread.join();
 
-            return exitCode;
-
         } catch (Exception e) {
             onOutput.accept("[FATAL] " + e.getMessage());
-            return -1;
         }
+
+        return parser.getStats();
     }
 
     public int update(Consumer<String> onOutput) {
@@ -119,5 +126,17 @@ public class YtDlpService {
             onOutput.accept("[FATAL] " + e.getMessage());
             return -1;
         }
+    }
+
+    private void handleParsedLine(OutputParser parser, String line, Consumer<Double> onProgress) {
+        double percent = parser.parseLine(line);
+        if (percent >= 0) {
+            onProgress.accept(percent);
+        }
+    }
+
+    private String resolveBundledTool(String toolName) {
+        // TODO: искать бинарник в папке bundle/ рядом с приложением
+        return toolName;
     }
 }

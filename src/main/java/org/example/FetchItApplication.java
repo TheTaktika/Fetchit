@@ -8,6 +8,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
@@ -16,6 +17,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import org.example.model.DownloadConfig;
+import org.example.model.DownloadStats;
 import org.example.service.YtDlpService;
 
 import java.io.File;
@@ -28,6 +30,7 @@ public class FetchItApplication extends Application {
     private final Button chooseDirButton = new Button("Папка…");
     private final Button downloadButton = new Button("Скачать");
     private final Button updateButton = new Button("Обновить yt-dlp");
+    private final ProgressBar progressBar = new ProgressBar(0);
     private final TextArea outputArea = new TextArea();
     private final YtDlpService ytDlpService = new YtDlpService();
 
@@ -35,7 +38,6 @@ public class FetchItApplication extends Application {
 
     @Override
     public void start(Stage stage) {
-
         urlField.setPromptText("Вставьте ссылку на видео или плейлист");
         HBox.setHgrow(urlField, Priority.ALWAYS);
 
@@ -50,11 +52,16 @@ public class FetchItApplication extends Application {
         topBar.setAlignment(Pos.CENTER);
         topBar.setPadding(new Insets(10));
 
+        progressBar.setPrefWidth(Double.MAX_VALUE);
+        HBox.setHgrow(progressBar, Priority.ALWAYS);
+        HBox progressBarBox = new HBox(progressBar);
+        progressBarBox.setPadding(new Insets(0, 10, 5, 10));
+
         outputArea.setEditable(false);
         outputArea.setWrapText(true);
         VBox.setVgrow(outputArea, Priority.ALWAYS);
 
-        VBox root = new VBox(topBar, settingsBar, outputArea);
+        VBox root = new VBox(topBar, settingsBar, progressBarBox, outputArea);
         root.setPadding(new Insets(10));
 
         Scene scene = new Scene(root, 1000, 650);
@@ -95,30 +102,36 @@ public class FetchItApplication extends Application {
 
         downloadButton.setDisable(true);
         updateButton.setDisable(true);
+        progressBar.setProgress(0);
 
         appendOutput("\n=== Начинаю загрузку ===\n");
         appendOutput("URL: " + config.getUrl() + "\n");
         appendOutput("Папка: " + config.getOutputDir() + "\n");
         appendOutput("Прокси: " + (config.hasProxy() ? config.getProxy() : "не используется") + "\n\n");
 
-        Task<Integer> task = new Task<>() {
+        Task<DownloadStats> task = new Task<>() {
             @Override
-            protected Integer call() {
+            protected DownloadStats call() {
                 return ytDlpService.download(
                         config,
-                        line -> Platform.runLater(() -> appendOutput(line + "\n"))
+                        line -> Platform.runLater(() -> appendOutput(line + "\n")),
+                        percent -> Platform.runLater(() -> progressBar.setProgress(percent / 100.0))
                 );
             }
         };
 
         task.setOnSucceeded(event -> {
-            appendOutput("\n=== Загрузка завершена. Код: " + task.getValue() + " ===\n");
+            DownloadStats stats = task.getValue();
+            appendOutput("\n=== Загрузка завершена ===\n");
+            appendOutput(stats.toSummary());
+            progressBar.setProgress(1.0);
             downloadButton.setDisable(false);
             updateButton.setDisable(false);
         });
 
         task.setOnFailed(event -> {
             appendOutput("\n=== Ошибка: " + task.getException().getMessage() + " ===\n");
+            progressBar.setProgress(0);
             downloadButton.setDisable(false);
             updateButton.setDisable(false);
         });
