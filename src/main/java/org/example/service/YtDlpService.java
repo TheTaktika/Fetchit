@@ -1,6 +1,9 @@
 package org.example.service;
 
 import org.example.model.DownloadConfig;
+import org.example.model.DownloadStats;
+import org.example.model.ProgressUpdate;
+import org.example.parser.OutputParser;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -10,10 +13,14 @@ import java.util.function.Consumer;
 
 public class YtDlpService {
 
-    public int download(DownloadConfig config, Consumer<String> onOutput) {
+    public DownloadStats download(DownloadConfig config,
+                                  Consumer<String> onOutput,
+                                  Consumer<ProgressUpdate> onProgress) {
+        OutputParser parser = new OutputParser();
+
         try {
             List<String> command = new ArrayList<>();
-            command.add("yt-dlp");
+            command.add(resolveBundledTool("yt-dlp.exe"));
 
             if (config.hasProxy()) {
                 command.add("--proxy");
@@ -44,6 +51,7 @@ public class YtDlpService {
                     String line;
                     while ((line = reader.readLine()) != null) {
                         onOutput.accept("[OUT] " + line);
+                        handleParsedLine(parser, line, onProgress);
                     }
                 } catch (Exception e) {
                     onOutput.accept("[ERR] Ошибка чтения stdout: " + e.getMessage());
@@ -56,6 +64,7 @@ public class YtDlpService {
                     String line;
                     while ((line = reader.readLine()) != null) {
                         onOutput.accept("[ERR] " + line);
+                        handleParsedLine(parser, line, onProgress);
                     }
                 } catch (Exception e) {
                     onOutput.accept("[ERR] Ошибка чтения stderr: " + e.getMessage());
@@ -65,16 +74,15 @@ public class YtDlpService {
             stdoutThread.start();
             stderrThread.start();
 
-            int exitCode = process.waitFor();
+            process.waitFor();
             stdoutThread.join();
             stderrThread.join();
 
-            return exitCode;
-
         } catch (Exception e) {
             onOutput.accept("[FATAL] " + e.getMessage());
-            return -1;
         }
+
+        return parser.getStats();
     }
 
     public int update(Consumer<String> onOutput) {
@@ -117,6 +125,57 @@ public class YtDlpService {
 
         } catch (Exception e) {
             onOutput.accept("[FATAL] " + e.getMessage());
+            return -1;
+        }
+    }
+
+    private void handleParsedLine(OutputParser parser, String line, Consumer<ProgressUpdate> onProgress) {
+        double percent = parser.parseLine(line);
+        if (percent >= 0) {
+            DownloadStats stats = parser.getStats();
+            onProgress.accept(new ProgressUpdate(
+                    percent,
+                    stats.getCompletedItems(),
+                    stats.getTotalItems()
+            ));
+        }
+    }
+
+    private String resolveBundledTool(String toolName) {
+        // TODO: искать бинарник в папке bundle/ рядом с приложением
+        return toolName;
+    }
+
+    public int getPlaylistItemCount(String url, Consumer<String> onOutput) {
+        try {
+            List<String> command = new ArrayList<>();
+            command.add(resolveBundledTool("yt-dlp.exe"));
+            command.add("--flat-playlist");
+            command.add("--print");
+            command.add("%(id)s");
+            command.add(url);
+
+            ProcessBuilder pb = new ProcessBuilder(command);
+            Process process = pb.start();
+
+            int count = 0;
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (!line.isBlank()) {
+                        count++;
+                    }
+                }
+            }
+            try (BufferedReader ignored = new BufferedReader(
+                    new InputStreamReader(process.getErrorStream()))) {
+                while (ignored.readLine() != null) { /* ничего */ }
+            }
+            process.waitFor();
+            return count > 0 ? count : -1;
+        } catch (Exception e) {
+            onOutput.accept("[WARN] Не удалось определить размер плейлиста: " + e.getMessage());
             return -1;
         }
     }
