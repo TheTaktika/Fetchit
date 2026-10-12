@@ -21,6 +21,7 @@ import org.example.model.ProgressUpdate;
 import org.example.scanner.DownloaderScanner;
 import org.example.service.PresetStorage;
 import org.example.service.YtDlpService;
+import org.example.ui.PresetEditorDialog;
 
 import java.io.File;
 import java.util.List;
@@ -305,6 +306,16 @@ public class FetchItApplication extends Application {
     }
 
     private void onSettingsClick() {
-        appendOutput("[INFO] Окно настроек появится в следующем обновлении\n");
+        PresetEditorDialog dialog = new PresetEditorDialog(
+                (Stage) settingsButton.getScene().getWindow(),
+                presetStorage
+        );
+        dialog.show();
+
+        presets = dialog.getPresets();
+        presetComboBox.setItems(FXCollections.observableArrayList(presets));
+        if (!presets.isEmpty()) {
+            presetComboBox.getSelectionModel().selectFirst();
+        }
     }
 }
