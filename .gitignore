@@ -66,3 +66,4 @@ deno.exe
 bundle/*.exe
 bundle/*.dll
 /javafx-jmods-21/
+presets.json
