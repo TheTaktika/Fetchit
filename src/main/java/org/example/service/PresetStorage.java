@@ -16,9 +16,13 @@ public class PresetStorage {
     private final File file;
 
     public PresetStorage() {
+        this(new File(FILE_NAME));
+    }
+
+    public PresetStorage(File file) {
         this.mapper = new ObjectMapper();
         this.mapper.enable(SerializationFeature.INDENT_OUTPUT);
-        this.file = new File(FILE_NAME);
+        this.file = file;
     }
 
     public List<Preset> load() {
