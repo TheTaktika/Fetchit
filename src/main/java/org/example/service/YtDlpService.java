@@ -1,5 +1,6 @@
 package org.example.service;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.example.model.DownloadConfig;
@@ -73,7 +74,13 @@ public class YtDlpService {
     }
 
     private String resolveBundledTool(String toolName) {
-        // TODO: искать бинарник в папке bundle/ рядом с приложением
+        File bundleDir = resolveBundleDir();
+        if (bundleDir != null) {
+            File tool = new File(bundleDir, toolName);
+            if (tool.exists() && tool.canExecute()) {
+                return tool.getAbsolutePath();
+            }
+        }
         return toolName;
     }
 
@@ -246,6 +253,11 @@ public class YtDlpService {
                 command.add("--no-overwrites");
             }
 
+            String ffmpegLocation = resolveFfmpegLocation();
+            if (ffmpegLocation != null) {
+                command.add("--ffmpeg-location");
+                command.add(ffmpegLocation);
+            }
             command.add("--parse-metadata");
             command.add("%(id)s:%(meta_comment)s");
 
@@ -294,5 +306,39 @@ public class YtDlpService {
         }
 
         return parser.getStats();
+    }
+
+    private File resolveBundleDir() {
+        try {
+            File codeSource = new File(
+                    YtDlpService.class.getProtectionDomain()
+                            .getCodeSource().getLocation().toURI()
+            );
+            File appDir = codeSource.getParentFile();
+            File rootDir = appDir.getParentFile();
+            File bundle = new File(rootDir, "bundle");
+            if (bundle.exists() && bundle.isDirectory()) {
+                return bundle;
+            }
+        } catch (Exception e) {
+        }
+
+        File devBundle = new File("bundle");
+        if (devBundle.exists() && devBundle.isDirectory()) {
+            return devBundle;
+        }
+
+        return null;
+    }
+
+    private String resolveFfmpegLocation() {
+        File bundleDir = resolveBundleDir();
+        if (bundleDir != null) {
+            File ffmpeg = new File(bundleDir, "ffmpeg.exe");
+            if (ffmpeg.exists()) {
+                return bundleDir.getAbsolutePath();
+            }
+        }
+        return null;
     }
 }
