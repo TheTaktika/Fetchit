@@ -21,6 +21,10 @@ public class OutputParser {
 
     private final DownloadStats stats;
 
+    public OutputParser() {
+        this(0);
+    }
+
     public OutputParser(int initialTotalItems) {
         this.stats = new DownloadStats();
         this.stats.setTotalItems(initialTotalItems);
