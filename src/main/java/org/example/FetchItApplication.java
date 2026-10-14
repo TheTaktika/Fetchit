@@ -9,6 +9,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -55,6 +56,13 @@ public class FetchItApplication extends Application {
 
     @Override
     public void start(Stage stage) {
+        try {
+            stage.getIcons().add(new Image(
+                    getClass().getResourceAsStream("/icon.png")
+            ));
+        } catch (Exception e) {
+            System.err.println("Не удалось загрузить иконку: " + e.getMessage());
+        }
         urlField.setPromptText("Вставьте ссылку на видео или плейлист");
         HBox.setHgrow(urlField, Priority.ALWAYS);
         HBox topBar = new HBox(10, urlField, downloadButton, updateButton);
