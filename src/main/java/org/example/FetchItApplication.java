@@ -2,16 +2,13 @@ package org.example;
 
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
-import javafx.scene.control.TitledPane;
+import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -19,9 +16,12 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import org.example.model.DownloadConfig;
 import org.example.model.DownloadStats;
+import org.example.model.Preset;
 import org.example.model.ProgressUpdate;
 import org.example.scanner.DownloaderScanner;
+import org.example.service.PresetStorage;
 import org.example.service.YtDlpService;
+import org.example.ui.PresetEditorDialog;
 
 import java.io.File;
 import java.util.List;
@@ -41,6 +41,11 @@ public class FetchItApplication extends Application {
     private final ProgressBar fileProgressBar = new ProgressBar(0);
     private final Label fileProgressLabel = new Label("0%");
 
+    private final ComboBox<Preset> presetComboBox = new ComboBox<>();
+    private final Button settingsButton = new Button("Настройки");
+    private final PresetStorage presetStorage = new PresetStorage();
+    private List<Preset> presets;
+
     private final Label summaryLabel = new Label("");
 
     private final TextArea outputArea = new TextArea();
@@ -58,9 +63,38 @@ public class FetchItApplication extends Application {
 
         proxyField.setPromptText("Прокси (необязательно), напр. socks5://127.0.0.1:10808");
         proxyField.setPrefWidth(300);
-        HBox settingsBar = new HBox(10, chooseDirButton, outputDirLabel, new Label("|"), proxyField);
+        presets = presetStorage.load();
+        ObservableList<Preset> presetItems = FXCollections.observableArrayList(presets);
+
+        presetComboBox.setItems(presetItems);
+        presetComboBox.setPrefWidth(200);
+        presetComboBox.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(Preset item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.getName());
+            }
+        });
+        presetComboBox.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(Preset item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.getName());
+            }
+        });
+        if (!presetItems.isEmpty()) {
+            presetComboBox.getSelectionModel().selectFirst();
+        }
+
+        HBox settingsBar = new HBox(10,
+                chooseDirButton, outputDirLabel,
+                new Label("|"),
+                proxyField,
+                new Label("|"),
+                new Label("Пресет:"), presetComboBox, settingsButton
+        );
         settingsBar.setAlignment(Pos.CENTER_LEFT);
-        settingsBar.setPadding(new Insets(0, 10, 10, 10));
+        settingsBar.setPadding(new Insets(5, 10, 5, 10));
 
         VBox progressBox = new VBox(8,
                 buildProgressRow("Общий прогресс:", totalProgressBar, totalProgressLabel),
@@ -89,8 +123,8 @@ public class FetchItApplication extends Application {
         chooseDirButton.setOnAction(e -> onChooseDirClick(stage));
         downloadButton.setOnAction(e -> onDownloadClick());
         updateButton.setOnAction(e -> onUpdateClick());
+        settingsButton.setOnAction(e -> onSettingsClick());
     }
-
 
     private HBox buildProgressRow(String labelText, ProgressBar bar, Label percentLabel) {
         Label nameLabel = new Label(labelText);
@@ -127,10 +161,17 @@ public class FetchItApplication extends Application {
             return;
         }
 
+        Preset selectedPreset = presetComboBox.getValue();
+        if (selectedPreset == null) {
+            appendOutput("Ошибка: не выбран пресет.\n");
+            return;
+        }
+
         DownloadConfig config = new DownloadConfig(
                 url,
                 selectedDir.getAbsolutePath(),
-                proxyField.getText()
+                proxyField.getText(),
+                selectedPreset
         );
 
         downloadButton.setDisable(true);
@@ -262,5 +303,19 @@ public class FetchItApplication extends Application {
     private void appendOutput(String text) {
         outputArea.appendText(text);
         outputArea.setScrollTop(Double.MAX_VALUE);
+    }
+
+    private void onSettingsClick() {
+        PresetEditorDialog dialog = new PresetEditorDialog(
+                (Stage) settingsButton.getScene().getWindow(),
+                presetStorage
+        );
+        dialog.show();
+
+        presets = dialog.getPresets();
+        presetComboBox.setItems(FXCollections.observableArrayList(presets));
+        if (!presets.isEmpty()) {
+            presetComboBox.getSelectionModel().selectFirst();
+        }
     }
 }
