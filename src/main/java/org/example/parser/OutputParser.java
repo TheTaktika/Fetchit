@@ -1,6 +1,7 @@
 package org.example.parser;
 
 import org.example.model.DownloadStats;
+import org.example.model.ErrorType;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -20,6 +21,7 @@ public class OutputParser {
             Pattern.compile("ERROR: (.+)");
 
     private final DownloadStats stats;
+    private final ErrorClassifier errorClassifier;
 
     public OutputParser() {
         this(0);
@@ -28,13 +30,16 @@ public class OutputParser {
     public OutputParser(int initialTotalItems) {
         this.stats = new DownloadStats();
         this.stats.setTotalItems(initialTotalItems);
+        this.errorClassifier = new ErrorClassifier();
     }
 
     public synchronized double parseLine(String line) {
         Matcher errorMatcher = ERROR_PATTERN.matcher(line);
         if (errorMatcher.find()) {
+            String message = errorMatcher.group(1).trim();
+            ErrorType type = errorClassifier.classify(message);
             stats.incrementErrors();
-            stats.addErrorMessage(errorMatcher.group(1));
+            stats.addError(type, message);
             return -1;
         }
 

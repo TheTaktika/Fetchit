@@ -1,7 +1,9 @@
 package org.example.model;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class DownloadStats {
 
@@ -10,7 +12,7 @@ public class DownloadStats {
     private int downloadedCount = 0;
     private int skippedCount = 0;
     private int errorsCount = 0;
-    private final List<String> errorMessages = new ArrayList<>();
+    private final Map<ErrorType, List<String>> classifiedErrors = new LinkedHashMap<>();
 
     private int totalItems = 0;
     private int completedItems = 0;
@@ -43,8 +45,14 @@ public class DownloadStats {
         errorsCount++;
     }
 
-    public void addErrorMessage(String message) {
-        errorMessages.add(message);
+    public void addError(ErrorType type, String rawMessage) {
+        classifiedErrors
+                .computeIfAbsent(type, k -> new ArrayList<>())
+                .add(rawMessage);
+    }
+
+    public Map<ErrorType, List<String>> getClassifiedErrors() {
+        return new LinkedHashMap<>(classifiedErrors);
     }
 
     public void setTotalItems(int totalItems) {
@@ -75,17 +83,13 @@ public class DownloadStats {
         return completedItems;
     }
 
-    public List<String> getErrorMessages() {
-        return new ArrayList<>(errorMessages);
-    }
-
     public String toSummary() {
         StringBuilder sb = new StringBuilder();
-        if (getPlaylistTotal() > 0) {
-            sb.append("Всего в плейлисте: ").append(getPlaylistTotal()).append("\n");
+        if (playlistTotal > 0) {
+            sb.append("Всего в плейлисте: ").append(playlistTotal).append("\n");
         }
-        if (getAlreadyOnDisk() > 0) {
-            sb.append("Уже было на диске: ").append(getAlreadyOnDisk()).append("\n");
+        if (alreadyOnDisk > 0) {
+            sb.append("Уже было на диске: ").append(alreadyOnDisk).append("\n");
         }
         sb.append("К загрузке: ").append(downloadedCount + skippedCount + errorsCount).append("\n");
         sb.append("Скачано: ").append(downloadedCount).append("\n");
@@ -94,10 +98,16 @@ public class DownloadStats {
         }
         sb.append("Ошибок: ").append(errorsCount).append("\n");
 
-        if (!getErrorMessages().isEmpty()) {
+        if (!classifiedErrors.isEmpty()) {
             sb.append("\nОшибки:\n");
-            for (String msg : getErrorMessages()) {
-                sb.append("  • ").append(msg).append("\n");
+            for (Map.Entry<ErrorType, List<String>> entry : classifiedErrors.entrySet()) {
+                ErrorType type = entry.getKey();
+                int count = entry.getValue().size();
+                sb.append("  • ").append(type.getUserMessage());
+                if (count > 1) {
+                    sb.append(" (x").append(count).append(")");
+                }
+                sb.append("\n");
             }
         }
         return sb.toString();
