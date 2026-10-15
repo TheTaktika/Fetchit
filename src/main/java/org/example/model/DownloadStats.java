@@ -85,10 +85,10 @@ public class DownloadStats {
 
     public String toSummary() {
         StringBuilder sb = new StringBuilder();
-        if (playlistTotal > 0) {
+        if (getPlaylistTotal() > 0) {
             sb.append("Всего в плейлисте: ").append(playlistTotal).append("\n");
         }
-        if (alreadyOnDisk > 0) {
+        if (getAlreadyOnDisk() > 0) {
             sb.append("Уже было на диске: ").append(alreadyOnDisk).append("\n");
         }
         sb.append("К загрузке: ").append(downloadedCount + skippedCount + errorsCount).append("\n");

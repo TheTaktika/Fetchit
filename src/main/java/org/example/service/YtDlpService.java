@@ -72,6 +72,7 @@ public class YtDlpService {
         }
     }
 
+    @SuppressWarnings("SameParameterValue")
     private String resolveBundledTool(String toolName) {
         File bundleDir = resolveBundleDir();
         if (bundleDir != null) {

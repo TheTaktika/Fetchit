@@ -54,9 +54,12 @@ public class FetchItApplication extends Application {
     @Override
     public void start(Stage stage) {
         try {
-            stage.getIcons().add(new Image(
-                    getClass().getResourceAsStream("/icon.png")
-            ));
+            var iconStream = getClass().getResourceAsStream("/icon.png");
+            if (iconStream != null) {
+                stage.getIcons().add(new Image(iconStream));
+            } else {
+                System.err.println("icon.png не найден в resources");
+            }
         } catch (Exception e) {
             System.err.println("Не удалось загрузить иконку: " + e.getMessage());
         }
