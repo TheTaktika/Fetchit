@@ -3,10 +3,9 @@ package org.example.service;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.example.model.DownloadConfig;
-import org.example.model.DownloadStats;
-import org.example.model.Preset;
-import org.example.model.ProgressUpdate;
+
+import org.example.model.*;
+import org.example.parser.ErrorClassifier;
 import org.example.parser.OutputParser;
 
 import java.io.BufferedReader;
@@ -73,6 +72,7 @@ public class YtDlpService {
         }
     }
 
+    @SuppressWarnings("SameParameterValue")
     private String resolveBundledTool(String toolName) {
         File bundleDir = resolveBundleDir();
         if (bundleDir != null) {
@@ -84,8 +84,10 @@ public class YtDlpService {
         return toolName;
     }
 
-    public List<String> getPlaylistVideoIds(String url, Consumer<String> onOutput) {
+    public PlaylistFetchResult getPlaylistVideoIds(String url, Consumer<String> onOutput) {
         List<String> ids = new ArrayList<>();
+        StringBuilder stderrBuffer = new StringBuilder();
+
         try {
             List<String> command = new ArrayList<>();
             command.add(resolveBundledTool("yt-dlp.exe"));
@@ -108,17 +110,41 @@ public class YtDlpService {
                 }
             }
 
-            try (BufferedReader ignored = new BufferedReader(
+            try (BufferedReader reader = new BufferedReader(
                     new InputStreamReader(process.getErrorStream()))) {
-                ignored.lines().forEach(l -> {});
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    stderrBuffer.append(line).append("\n");
+                }
             }
 
             process.waitFor();
 
+            if (ids.isEmpty()) {
+                String stderr = stderrBuffer.toString();
+                ErrorClassifier classifier = new ErrorClassifier();
+                ErrorType error = ErrorType.UNKNOWN;
+
+                for (String line : stderr.split("\n")) {
+                    if (line.contains("ERROR:")) {
+                        ErrorType detected = classifier.classify(line);
+                        if (detected != ErrorType.UNKNOWN) {
+                            error = detected;
+                            break;
+                        }
+                    }
+                }
+
+                onOutput.accept("[WARN] " + error.getUserMessage());
+                return PlaylistFetchResult.failure(error);
+            }
+
+            return PlaylistFetchResult.success(ids);
+
         } catch (Exception e) {
             onOutput.accept("[WARN] Не удалось получить список видео: " + e.getMessage());
+            return PlaylistFetchResult.failure(ErrorType.UNKNOWN);
         }
-        return ids;
     }
 
     public DownloadStats downloadByIds(DownloadConfig config,

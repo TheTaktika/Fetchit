@@ -15,10 +15,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
-import org.example.model.DownloadConfig;
-import org.example.model.DownloadStats;
-import org.example.model.Preset;
-import org.example.model.ProgressUpdate;
+import org.example.model.*;
 import org.example.scanner.DownloaderScanner;
 import org.example.service.PresetStorage;
 import org.example.service.YtDlpService;
@@ -57,9 +54,12 @@ public class FetchItApplication extends Application {
     @Override
     public void start(Stage stage) {
         try {
-            stage.getIcons().add(new Image(
-                    getClass().getResourceAsStream("/icon.png")
-            ));
+            var iconStream = getClass().getResourceAsStream("/icon.png");
+            if (iconStream != null) {
+                stage.getIcons().add(new Image(iconStream));
+            } else {
+                System.err.println("icon.png не найден в resources");
+            }
         } catch (Exception e) {
             System.err.println("Не удалось загрузить иконку: " + e.getMessage());
         }
@@ -199,10 +199,19 @@ public class FetchItApplication extends Application {
                 DownloaderScanner scanner = new DownloaderScanner();
                 Set<String> downloadedIds = scanner.scanDownloadedIds(config.getOutputDir());
 
-                List<String> allIds = ytDlpService.getPlaylistVideoIds(
+                PlaylistFetchResult fetchResult = ytDlpService.getPlaylistVideoIds(
                         config.getUrl(),
                         line -> Platform.runLater(() -> appendOutput(line + "\n"))
                 );
+
+                if (!fetchResult.isSuccess()) {
+                    DownloadStats failed = new DownloadStats();
+                    failed.incrementErrors();
+                    failed.addError(fetchResult.error(), "fetch failed");
+                    return failed;
+                }
+
+                List<String> allIds = fetchResult.ids();
 
                 List<String> toDownload = allIds.stream()
                         .filter(id -> !downloadedIds.contains(id))

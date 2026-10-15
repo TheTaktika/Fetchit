@@ -1,6 +1,7 @@
 package parser;
 
 import org.example.model.DownloadStats;
+import org.example.model.ErrorType;
 import org.example.parser.OutputParser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,8 +46,8 @@ class OutputParserTest {
         parser.parseLine("ERROR: unable to download video data");
         DownloadStats stats = parser.getStats();
         assertEquals(1, stats.getErrorsCount());
-        assertEquals(1, stats.getErrorMessages().size());
-        assertTrue(stats.getErrorMessages().get(0).contains("unable to download"));
+        assertEquals(1, stats.getClassifiedErrors().size());
+        assertTrue(stats.getClassifiedErrors().containsKey(ErrorType.NETWORK_ERROR));
     }
 
     @Test
@@ -80,10 +81,12 @@ class OutputParserTest {
 
     @Test
     void parseMultipleErrors_accumulatesMessages() {
-        parser.parseLine("ERROR: first error");
-        parser.parseLine("ERROR: second error");
+        parser.parseLine("ERROR: unable to download video data");
+        parser.parseLine("ERROR: video unavailable in your country");
         DownloadStats stats = parser.getStats();
         assertEquals(2, stats.getErrorsCount());
-        assertEquals(2, stats.getErrorMessages().size());
+        assertEquals(2, stats.getClassifiedErrors().size());
+        assertTrue(stats.getClassifiedErrors().containsKey(ErrorType.NETWORK_ERROR));
+        assertTrue(stats.getClassifiedErrors().containsKey(ErrorType.GEO_BLOCKED));
     }
 }
