@@ -63,6 +63,7 @@ public class PresetEditorDialog {
         );
 
         buildForm();
+        applyTooltips();
 
         Button createBtn = new Button("Создать");
         Button deleteBtn = new Button("Удалить");
@@ -101,6 +102,153 @@ public class PresetEditorDialog {
         audioQualitySpinner.setEditable(true);
         fragmentsSpinner.setEditable(true);
         retriesSpinner.setEditable(true);
+    }
+
+    private void applyTooltips() {
+        nameField.setTooltip(buildTooltip("Произвольное название пресета. Используется в выпадающем списке."));
+
+        formatBox.setTooltip(buildTooltip(
+                """
+                        Тип загрузки:
+                        • audio — только звук (MP3, FLAC и др.)
+                        • video — видеофайл целиком
+                        """
+        ));
+
+        audioFormatBox.setTooltip(buildTooltip(
+                """
+                        Формат аудио:
+                        • mp3 — универсальный
+                        • m4a — лучше качество при меньшем размере
+                        • flac — без потерь, большой размер
+                        • opus — современный, эффективный
+                        """
+        ));
+
+        audioQualitySpinner.setTooltip(buildTooltip(
+                """
+                        Качество аудио (шкала FFmpeg):
+                        • 0 — лучшее (макс. битрейт ~320 kbps)
+                        • 5 — среднее (~160 kbps)
+                        • 10 — худшее (~65 kbps)
+                        """
+        ));
+
+        videoQualityBox.setTooltip(buildTooltip(
+                """
+                        Максимальное качество видео:
+                        • best — самое лучшее доступное
+                        • 1080p, 720p и т.д. — ограничение по высоте
+                        """
+        ));
+
+        mergeFormatBox.setTooltip(buildTooltip(
+                """
+                        Контейнер для видео:
+                        • mp4 — универсальный, для большинства плееров
+                        • mkv — для высокого качества и субтитров
+                        • webm — открытый формат
+                        """
+        ));
+
+        embedThumbnailBox.setTooltip(buildTooltip(
+                """
+                Встроить превью (обложку) в файл.
+                        Для MP3 — картинка в тегах, для видео — превью-кадр.
+                """
+        ));
+
+        addMetadataBox.setTooltip(buildTooltip(
+                """
+                Добавить метаданные: название, исполнитель, альбом, год.
+                        Настоятельно рекомендуется — иначе файл будет без тегов.
+                """
+        ));
+
+        embedChaptersBox.setTooltip(buildTooltip(
+                """
+                Встроить главы (только для видео).
+                        Позволяет переключаться по смысловым частям в плеере.
+                """
+        ));
+
+        writeSubsBox.setTooltip(buildTooltip(
+                """
+                Сохранить субтитры отдельным файлом (.srt / .vtt)
+                        рядом с видео. Можно редактировать в блокноте.
+                """
+        ));
+
+        embedSubsBox.setTooltip(buildTooltip(
+                """
+                Встроить субтитры внутрь видеофайла.
+                        Плеер сможет включать/выключать их.
+                """
+        ));
+
+        subLangsField.setTooltip(buildTooltip(
+                """
+                Языки субтитров через запятую (ISO-коды):
+                        например, ru,en — русские и английские.
+                """
+        ));
+
+        fragmentsSpinner.setTooltip(buildTooltip(
+                """
+                        Одновременных фрагментов для скачивания:
+                        • 1 — медленно, но безопасно
+                        • 4 — хороший баланс
+                        • 8+ — быстрее, но могут быть ошибки с сетью.
+                        """
+        ));
+
+        limitRateField.setTooltip(buildTooltip(
+                """
+                        Ограничение скорости скачивания:
+                        например, 5M — 5 МБ/с.
+                        Пусто — без ограничений.
+                        """
+        ));
+
+        retriesSpinner.setTooltip(buildTooltip(
+                """
+                Количество повторных попыток при сбоях сети.
+                        10 — по умолчанию, 20+ — для нестабильного интернета.
+                """
+        ));
+
+        sponsorblockRemoveField.setTooltip(buildTooltip(
+                """
+                        Категории SponsorBlock для удаления из видео:
+                        • sponsor — спонсорские вставки
+                        • selfpromo — самореклама
+                        • intro — интро
+                        • outro — аутро
+                        Через запятую, например: sponsor,selfpromo
+                        """
+        ));
+
+        keepVideoBox.setTooltip(buildTooltip(
+                """
+                Оставить исходный видеофайл после извлечения аудио.
+                        Только для аудио-пресетов. Занимает вдвое больше места.
+                """
+        ));
+
+        noOverwritesBox.setTooltip(buildTooltip(
+                """
+                Не перезаписывать файлы, которые уже есть в папке.
+                        Рекомендуется держать включённым.
+                """
+        ));
+    }
+
+    private Tooltip buildTooltip(String text) {
+        Tooltip tooltip = new Tooltip(text);
+        tooltip.setShowDelay(javafx.util.Duration.millis(300));
+        tooltip.setWrapText(true);
+        tooltip.setMaxWidth(400);
+        return tooltip;
     }
 
     private VBox buildFormPane() {
