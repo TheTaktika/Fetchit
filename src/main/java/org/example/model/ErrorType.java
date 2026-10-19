@@ -1,24 +1,24 @@
 package org.example.model;
 
 public enum ErrorType {
-    INVALID_URL("Неверная ссылка. Проверьте, что это правильный URL."),
-    GEO_BLOCKED("Видео недоступно в вашем регионе. Попробуйте использовать VPN или прокси."),
-    PRIVATE_VIDEO("Видео приватное. Для доступа нужна авторизация (cookies)."),
-    RATE_LIMITED("Слишком много запросов к YouTube. Попробуйте позже."),
-    NETWORK_ERROR("Обрыв сети или проблема с соединением. Проверьте интернет."),
-    BOT_CHECK("YouTube требует подтверждение, что вы не робот. Используйте cookies из браузера."),
-    VIDEO_UNAVAILABLE("Видео недоступно или удалено автором."),
-    PLAYLIST_NOT_FOUND("Плейлист не существует или был удалён."),
-    SIGN_IN_REQUIRED("Требуется вход в аккаунт YouTube для доступа к этому контенту."),
-    UNKNOWN("Неизвестная ошибка. Смотрите подробности в логах.");
+    INVALID_URL("error.invalid_url"),
+    GEO_BLOCKED("error.geo_blocked"),
+    PRIVATE_VIDEO("error.private_video"),
+    RATE_LIMITED("error.rate_limited"),
+    NETWORK_ERROR("error.network"),
+    BOT_CHECK("error.bot_check"),
+    VIDEO_UNAVAILABLE("error.video_unavailable"),
+    PLAYLIST_NOT_FOUND("error.playlist_not_found"),
+    SIGN_IN_REQUIRED("error.sign_in"),
+    UNKNOWN("error.unknown");
 
-    private final String userMessage;
+    private final String messageKey;
 
-    ErrorType(String userMessage) {
-        this.userMessage = userMessage;
+    ErrorType(String key) {
+        this.messageKey = key;
     }
 
-    public String getUserMessage() {
-        return userMessage;
+    public String getMessageKey() {
+        return messageKey;
     }
 }

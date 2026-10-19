@@ -10,7 +10,7 @@ public class LanguageManager {
     private Locale currentLocale;
 
     private LanguageManager() {
-        setLocale(new Locale("ru"));
+        setLocale(Locale.of("ru"));
     }
 
     public static LanguageManager getInstance() {

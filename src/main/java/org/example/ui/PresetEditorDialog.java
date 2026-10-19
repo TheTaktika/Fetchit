@@ -15,6 +15,7 @@ import org.example.service.PresetStorage;
 import java.util.List;
 
 public class PresetEditorDialog {
+    private final LanguageManager lang = LanguageManager.getInstance();
 
     private final Stage stage;
     private final PresetStorage storage;
@@ -27,18 +28,18 @@ public class PresetEditorDialog {
     private final Spinner<Integer> audioQualitySpinner = new Spinner<>(0, 10, 0);
     private final ComboBox<String> videoQualityBox = new ComboBox<>();
     private final ComboBox<String> mergeFormatBox = new ComboBox<>();
-    private final CheckBox embedThumbnailBox = new CheckBox("Встроить превью");
-    private final CheckBox addMetadataBox = new CheckBox("Добавить метаданные");
-    private final CheckBox embedChaptersBox = new CheckBox("Встроить главы");
-    private final CheckBox writeSubsBox = new CheckBox("Сохранить субтитры");
-    private final CheckBox embedSubsBox = new CheckBox("Встроить субтитры");
+    private final CheckBox embedThumbnailBox = new CheckBox();
+    private final CheckBox addMetadataBox = new CheckBox();
+    private final CheckBox embedChaptersBox = new CheckBox();
+    private final CheckBox writeSubsBox = new CheckBox();
+    private final CheckBox embedSubsBox = new CheckBox();
     private final TextField subLangsField = new TextField();
     private final Spinner<Integer> fragmentsSpinner = new Spinner<>(1, 16, 1);
     private final TextField limitRateField = new TextField();
     private final Spinner<Integer> retriesSpinner = new Spinner<>(0, 50, 10);
     private final TextField sponsorblockRemoveField = new TextField();
-    private final CheckBox keepVideoBox = new CheckBox("Сохранять исходное видео");
-    private final CheckBox noOverwritesBox = new CheckBox("Не перезаписывать файлы");
+    private final CheckBox keepVideoBox = new CheckBox();
+    private final CheckBox noOverwritesBox = new CheckBox();
 
     public PresetEditorDialog(Stage owner, PresetStorage storage) {
         this.storage = storage;
@@ -47,7 +48,7 @@ public class PresetEditorDialog {
         this.stage = new Stage();
         stage.initOwner(owner);
         stage.initModality(Modality.WINDOW_MODAL);
-        stage.setTitle("Настройки пресетов");
+        stage.setTitle(lang.get("preset.title"));
 
         presetList.setItems(presets);
         presetList.setPrefWidth(200);
@@ -65,10 +66,10 @@ public class PresetEditorDialog {
         buildForm();
         applyTooltips();
 
-        Button createBtn = new Button("Создать");
-        Button deleteBtn = new Button("Удалить");
-        Button saveBtn = new Button("Сохранить");
-        Button closeBtn = new Button("Закрыть");
+        Button createBtn = new Button(lang.get("preset.btn_create"));
+        Button deleteBtn = new Button(lang.get("preset.btn_delete"));
+        Button saveBtn = new Button(lang.get("preset.btn_save"));
+        Button closeBtn = new Button(lang.get("preset.btn_close"));
 
         createBtn.setOnAction(e -> onCreate());
         deleteBtn.setOnAction(e -> onDelete());
@@ -105,142 +106,24 @@ public class PresetEditorDialog {
     }
 
     private void applyTooltips() {
-        nameField.setTooltip(buildTooltip("Произвольное название пресета. Используется в выпадающем списке."));
-
-        formatBox.setTooltip(buildTooltip(
-                """
-                        Тип загрузки:
-                        • audio — только звук (MP3, FLAC и др.)
-                        • video — видеофайл целиком
-                        """
-        ));
-
-        audioFormatBox.setTooltip(buildTooltip(
-                """
-                        Формат аудио:
-                        • mp3 — универсальный
-                        • m4a — лучше качество при меньшем размере
-                        • flac — без потерь, большой размер
-                        • opus — современный, эффективный
-                        """
-        ));
-
-        audioQualitySpinner.setTooltip(buildTooltip(
-                """
-                        Качество аудио (шкала FFmpeg):
-                        • 0 — лучшее (макс. битрейт ~320 kbps)
-                        • 5 — среднее (~160 kbps)
-                        • 10 — худшее (~65 kbps)
-                        """
-        ));
-
-        videoQualityBox.setTooltip(buildTooltip(
-                """
-                        Максимальное качество видео:
-                        • best — самое лучшее доступное
-                        • 1080p, 720p и т.д. — ограничение по высоте
-                        """
-        ));
-
-        mergeFormatBox.setTooltip(buildTooltip(
-                """
-                        Контейнер для видео:
-                        • mp4 — универсальный, для большинства плееров
-                        • mkv — для высокого качества и субтитров
-                        • webm — открытый формат
-                        """
-        ));
-
-        embedThumbnailBox.setTooltip(buildTooltip(
-                """
-                Встроить превью (обложку) в файл.
-                        Для MP3 — картинка в тегах, для видео — превью-кадр.
-                """
-        ));
-
-        addMetadataBox.setTooltip(buildTooltip(
-                """
-                Добавить метаданные: название, исполнитель, альбом, год.
-                        Настоятельно рекомендуется — иначе файл будет без тегов.
-                """
-        ));
-
-        embedChaptersBox.setTooltip(buildTooltip(
-                """
-                Встроить главы (только для видео).
-                        Позволяет переключаться по смысловым частям в плеере.
-                """
-        ));
-
-        writeSubsBox.setTooltip(buildTooltip(
-                """
-                Сохранить субтитры отдельным файлом (.srt / .vtt)
-                        рядом с видео. Можно редактировать в блокноте.
-                """
-        ));
-
-        embedSubsBox.setTooltip(buildTooltip(
-                """
-                Встроить субтитры внутрь видеофайла.
-                        Плеер сможет включать/выключать их.
-                """
-        ));
-
-        subLangsField.setTooltip(buildTooltip(
-                """
-                Языки субтитров через запятую (ISO-коды):
-                        например, ru,en — русские и английские.
-                """
-        ));
-
-        fragmentsSpinner.setTooltip(buildTooltip(
-                """
-                        Одновременных фрагментов для скачивания:
-                        • 1 — медленно, но безопасно
-                        • 4 — хороший баланс
-                        • 8+ — быстрее, но могут быть ошибки с сетью.
-                        """
-        ));
-
-        limitRateField.setTooltip(buildTooltip(
-                """
-                        Ограничение скорости скачивания:
-                        например, 5M — 5 МБ/с.
-                        Пусто — без ограничений.
-                        """
-        ));
-
-        retriesSpinner.setTooltip(buildTooltip(
-                """
-                Количество повторных попыток при сбоях сети.
-                        10 — по умолчанию, 20+ — для нестабильного интернета.
-                """
-        ));
-
-        sponsorblockRemoveField.setTooltip(buildTooltip(
-                """
-                        Категории SponsorBlock для удаления из видео:
-                        • sponsor — спонсорские вставки
-                        • selfpromo — самореклама
-                        • intro — интро
-                        • outro — аутро
-                        Через запятую, например: sponsor,selfpromo
-                        """
-        ));
-
-        keepVideoBox.setTooltip(buildTooltip(
-                """
-                Оставить исходный видеофайл после извлечения аудио.
-                        Только для аудио-пресетов. Занимает вдвое больше места.
-                """
-        ));
-
-        noOverwritesBox.setTooltip(buildTooltip(
-                """
-                Не перезаписывать файлы, которые уже есть в папке.
-                        Рекомендуется держать включённым.
-                """
-        ));
+        nameField.setTooltip(buildTooltip(lang.get("tooltip.name")));
+        formatBox.setTooltip(buildTooltip(lang.get("tooltip.format")));
+        audioFormatBox.setTooltip(buildTooltip(lang.get("tooltip.audio_format")));
+        audioQualitySpinner.setTooltip(buildTooltip(lang.get("tooltip.audio_quality")));
+        videoQualityBox.setTooltip(buildTooltip(lang.get("tooltip.video_quality")));
+        mergeFormatBox.setTooltip(buildTooltip(lang.get("tooltip.merge_format")));
+        embedThumbnailBox.setTooltip(buildTooltip(lang.get("tooltip.embed_thumbnail")));
+        addMetadataBox.setTooltip(buildTooltip(lang.get("tooltip.add_metadata")));
+        embedChaptersBox.setTooltip(buildTooltip(lang.get("tooltip.embed_chapters")));
+        writeSubsBox.setTooltip(buildTooltip(lang.get("tooltip.write_subs")));
+        embedSubsBox.setTooltip(buildTooltip(lang.get("tooltip.embed_subs")));
+        subLangsField.setTooltip(buildTooltip(lang.get("tooltip.sub_langs")));
+        fragmentsSpinner.setTooltip(buildTooltip(lang.get("tooltip.fragments")));
+        limitRateField.setTooltip(buildTooltip(lang.get("tooltip.limit_rate")));
+        retriesSpinner.setTooltip(buildTooltip(lang.get("tooltip.retries")));
+        sponsorblockRemoveField.setTooltip(buildTooltip(lang.get("tooltip.sponsorblock")));
+        keepVideoBox.setTooltip(buildTooltip(lang.get("tooltip.keep_video")));
+        noOverwritesBox.setTooltip(buildTooltip(lang.get("tooltip.no_overwrites")));
     }
 
     private Tooltip buildTooltip(String text) {
@@ -252,6 +135,14 @@ public class PresetEditorDialog {
     }
 
     private VBox buildFormPane() {
+        embedThumbnailBox.setText(lang.get("preset.embed_thumbnail"));
+        addMetadataBox.setText(lang.get("preset.add_metadata"));
+        embedChaptersBox.setText(lang.get("preset.embed_chapters"));
+        writeSubsBox.setText(lang.get("preset.write_subs"));
+        embedSubsBox.setText(lang.get("preset.embed_subs"));
+        keepVideoBox.setText(lang.get("preset.keep_video"));
+        noOverwritesBox.setText(lang.get("preset.no_overwrites"));
+
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(8);
@@ -263,25 +154,25 @@ public class PresetEditorDialog {
         grid.getColumnConstraints().addAll(c1, c2);
 
         int row = 0;
-        grid.add(new Label("Имя:"), 0, row); grid.add(nameField, 1, row++);
-        grid.add(new Label("Формат:"), 0, row); grid.add(formatBox, 1, row++);
-        grid.add(new Label("Аудио формат:"), 0, row); grid.add(audioFormatBox, 1, row++);
-        grid.add(new Label("Аудио качество (0–10):"), 0, row); grid.add(audioQualitySpinner, 1, row++);
-        grid.add(new Label("Видео качество:"), 0, row); grid.add(videoQualityBox, 1, row++);
-        grid.add(new Label("Формат контейнера:"), 0, row); grid.add(mergeFormatBox, 1, row++);
+        grid.add(new Label(lang.get("preset.name")), 0, row); grid.add(nameField, 1, row++);
+        grid.add(new Label(lang.get("preset.format")), 0, row); grid.add(formatBox, 1, row++);
+        grid.add(new Label(lang.get("preset.audio_format")), 0, row); grid.add(audioFormatBox, 1, row++);
+        grid.add(new Label(lang.get("preset.audio_quality")), 0, row); grid.add(audioQualitySpinner, 1, row++);
+        grid.add(new Label(lang.get("preset.video_quality")), 0, row); grid.add(videoQualityBox, 1, row++);
+        grid.add(new Label(lang.get("preset.merge_format")), 0, row); grid.add(mergeFormatBox, 1, row++);
         grid.add(embedThumbnailBox, 0, row++, 2, 1);
         grid.add(addMetadataBox, 0, row++, 2, 1);
         grid.add(embedChaptersBox, 0, row++, 2, 1);
         grid.add(writeSubsBox, 0, row++, 2, 1);
         grid.add(embedSubsBox, 0, row++, 2, 1);
-        grid.add(new Label("Языки субтитров:"), 0, row); grid.add(subLangsField, 1, row++);
-        subLangsField.setPromptText("например, ru,en");
-        grid.add(new Label("Одновременных фрагментов:"), 0, row); grid.add(fragmentsSpinner, 1, row++);
-        grid.add(new Label("Ограничение скорости:"), 0, row); grid.add(limitRateField, 1, row++);
-        limitRateField.setPromptText("например, 5M (пусто — без лимита)");
-        grid.add(new Label("Повторы:"), 0, row); grid.add(retriesSpinner, 1, row++);
-        grid.add(new Label("SponsorBlock (удалить):"), 0, row); grid.add(sponsorblockRemoveField, 1, row++);
-        sponsorblockRemoveField.setPromptText("sponsor,selfpromo");
+        grid.add(new Label(lang.get("preset.sub_langs")), 0, row); grid.add(subLangsField, 1, row++);
+        subLangsField.setPromptText(lang.get("preset.prompt_sublangs"));
+        grid.add(new Label(lang.get("preset.fragments")), 0, row); grid.add(fragmentsSpinner, 1, row++);
+        grid.add(new Label(lang.get("preset.limit_rate")), 0, row); grid.add(limitRateField, 1, row++);
+        limitRateField.setPromptText(lang.get("preset.prompt_limit_rate"));
+        grid.add(new Label(lang.get("preset.retries")), 0, row); grid.add(retriesSpinner, 1, row++);
+        grid.add(new Label(lang.get("preset.sponsorblock")), 0, row); grid.add(sponsorblockRemoveField, 1, row++);
+        sponsorblockRemoveField.setPromptText(lang.get("preset.prompt_sponsorblock"));
         grid.add(keepVideoBox, 0, row++, 2, 1);
         grid.add(noOverwritesBox, 0, row++, 2, 1);
 
@@ -316,7 +207,7 @@ public class PresetEditorDialog {
     }
 
     private void applyForm(Preset p) {
-        p.setName(nameField.getText().isBlank() ? "Без имени" : nameField.getText().trim());
+        p.setName(nameField.getText().isBlank() ? lang.get("preset.no_name") : nameField.getText().trim());
         p.setFormat(formatBox.getValue() == null ? "audio" : formatBox.getValue());
         p.setAudioFormat(audioFormatBox.getValue());
         p.setAudioQuality(audioQualitySpinner.getValue());
@@ -342,7 +233,7 @@ public class PresetEditorDialog {
 
     private void onCreate() {
         Preset p = Preset.defaultAudioPreset();
-        p.setName("Новый пресет");
+        p.setName(lang.get("preset.new_name"));
         presets.add(p);
         presetList.getSelectionModel().select(p);
     }
@@ -357,13 +248,13 @@ public class PresetEditorDialog {
     private void onSave() {
         Preset selected = presetList.getSelectionModel().getSelectedItem();
         if (selected == null) {
-            showAlert("Выберите пресет или создайте новый.");
+            showAlert(lang.get("preset.alert_select"));
             return;
         }
         applyForm(selected);
         presetList.refresh();
         storage.save(presets);
-        showAlert("Сохранено.");
+        showAlert(lang.get("preset.alert_saved"));
     }
 
     private void showAlert(String message) {

@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import org.example.model.*;
 import org.example.parser.ErrorClassifier;
 import org.example.parser.OutputParser;
+import org.example.ui.LanguageManager;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -135,14 +136,14 @@ public class YtDlpService {
                     }
                 }
 
-                onOutput.accept("[WARN] " + error.getUserMessage());
+                onOutput.accept("[WARN] " + LanguageManager.getInstance().get(error.getMessageKey()));
                 return PlaylistFetchResult.failure(error);
             }
 
             return PlaylistFetchResult.success(ids);
 
         } catch (Exception e) {
-            onOutput.accept("[WARN] Не удалось получить список видео: " + e.getMessage());
+            onOutput.accept("[WARN] " + LanguageManager.getInstance().get("status.error_lists") + e.getMessage());
             return PlaylistFetchResult.failure(ErrorType.UNKNOWN);
         }
     }
@@ -176,7 +177,7 @@ public class YtDlpService {
             return stats;
 
         } catch (Exception e) {
-            onOutput.accept("[FATAL] Не удалось создать список URL: " + e.getMessage());
+            onOutput.accept("[FATAL] " + LanguageManager.getInstance().get("error.failed_urls") + e.getMessage());
             return new DownloadStats();
         }
     }
