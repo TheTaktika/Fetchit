@@ -19,13 +19,17 @@ import org.example.model.*;
 import org.example.scanner.DownloaderScanner;
 import org.example.service.PresetStorage;
 import org.example.service.YtDlpService;
+import org.example.ui.LanguageManager;
 import org.example.ui.PresetEditorDialog;
 
 import java.io.File;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 public class FetchItApplication extends Application {
+    private final ComboBox<String> langComboBox = new ComboBox<>();
+    private final LanguageManager lang = LanguageManager.getInstance();
 
     private final TextField urlField = new TextField();
     private final TextField proxyField = new TextField();
@@ -65,7 +69,17 @@ public class FetchItApplication extends Application {
         }
         urlField.setPromptText("Вставьте ссылку на видео или плейлист");
         HBox.setHgrow(urlField, Priority.ALWAYS);
-        HBox topBar = new HBox(10, urlField, downloadButton, updateButton);
+        langComboBox.getItems().addAll("RU", "EN");
+        langComboBox.setValue(lang.getCurrentLocale().getLanguage().equals("ru") ? "RU" : "EN");
+        langComboBox.setPrefWidth(70);
+
+        langComboBox.setOnAction(e -> {
+            String selected = langComboBox.getValue();
+            Locale newLocale = selected.equals("RU") ? new Locale("ru") : new Locale("en");
+            lang.setLocale(newLocale);
+            updateTexts();
+        });
+        HBox topBar = new HBox(10, urlField, downloadButton, updateButton, langComboBox);
         topBar.setAlignment(Pos.CENTER);
         topBar.setPadding(new Insets(10, 10, 5, 10));
 
@@ -132,6 +146,7 @@ public class FetchItApplication extends Application {
         downloadButton.setOnAction(e -> onDownloadClick());
         updateButton.setOnAction(e -> onUpdateClick());
         settingsButton.setOnAction(e -> onSettingsClick());
+        updateTexts();
     }
 
     private HBox buildProgressRow(String labelText, ProgressBar bar, Label percentLabel) {
@@ -158,7 +173,7 @@ public class FetchItApplication extends Application {
         File dir = chooser.showDialog(stage);
         if (dir != null) {
             selectedDir = dir;
-            outputDirLabel.setText("Папка: " + dir.getAbsolutePath());
+            outputDirLabel.setText(lang.get("label.folder") + " " + dir.getAbsolutePath());
         }
     }
 
@@ -333,6 +348,23 @@ public class FetchItApplication extends Application {
         presetComboBox.setItems(FXCollections.observableArrayList(presets));
         if (!presets.isEmpty()) {
             presetComboBox.getSelectionModel().selectFirst();
+        }
+    }
+
+    private void updateTexts() {
+        TitledPane logsPane = new TitledPane("Логи (для разработки)", outputArea);
+        urlField.setPromptText(lang.get("field.url"));
+        proxyField.setPromptText(lang.get("field.proxy"));
+
+        downloadButton.setText(lang.get("button.download"));
+        updateButton.setText(lang.get("button.update"));
+        settingsButton.setText(lang.get("button.settings"));
+        chooseDirButton.setText(lang.get("button.folder"));
+
+        outputDirLabel.setText(lang.get("label.folder") + " " + selectedDir.getName());
+
+        if (logsPane != null) {
+            logsPane.setText(lang.get("pane.logs"));
         }
     }
 }
