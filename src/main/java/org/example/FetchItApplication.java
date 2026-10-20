@@ -16,8 +16,8 @@ import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import org.example.model.*;
-import org.example.scanner.DownloaderScanner;
 import org.example.service.PresetStorage;
+import org.example.service.QueueManager;
 import org.example.service.YtDlpService;
 import org.example.ui.LanguageManager;
 import org.example.ui.PresetEditorDialog;
@@ -25,14 +25,12 @@ import org.example.ui.PresetEditorDialog;
 import java.io.File;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 
 public class FetchItApplication extends Application {
     private final ComboBox<String> langComboBox = new ComboBox<>();
     private final LanguageManager lang = LanguageManager.getInstance();
     private final TitledPane logsPane = new TitledPane();
-    private final Label totalProgressNameLabel = new Label();
-    private final Label fileProgressNameLabel  = new Label();
+    private QueueManager queueManager;
 
     private final TextField urlField = new TextField();
     private final TextField proxyField = new TextField();
@@ -41,15 +39,16 @@ public class FetchItApplication extends Application {
     private final Button downloadButton = new Button();
     private final Button updateButton = new Button();
 
-    private final ProgressBar totalProgressBar = new ProgressBar(0);
-    private final Label totalProgressLabel = new Label();
-    private final ProgressBar fileProgressBar = new ProgressBar(0);
-    private final Label fileProgressLabel = new Label();
-
     private final ComboBox<Preset> presetComboBox = new ComboBox<>();
     private final Button settingsButton = new Button();
     private final PresetStorage presetStorage = new PresetStorage();
     private List<Preset> presets;
+
+    private final TableView<DownloadItem> queueTable = new TableView<>();
+    private final ObservableList<DownloadItem> downloadQueue = FXCollections.observableArrayList();
+    private final TableColumn<DownloadItem, String> titleCol = new TableColumn<>();
+    private final TableColumn<DownloadItem, DownloadItem.Status> statusCol = new TableColumn<>();
+    private final TableColumn<DownloadItem, Number> progressCol = new TableColumn<>();
 
     private final Label summaryLabel = new Label("");
 
@@ -58,8 +57,12 @@ public class FetchItApplication extends Application {
     private final YtDlpService ytDlpService = new YtDlpService();
     private File selectedDir = new File("test_output");
 
+    private final MenuItem cancelMenu = new MenuItem();
+    private final MenuItem removeMenu = new MenuItem();
+
     @Override
     public void start(Stage stage) {
+        queueManager = new QueueManager(downloadQueue, ytDlpService, this::appendOutput);
         try {
             var iconStream = getClass().getResourceAsStream("/icon.png");
             if (iconStream != null) {
@@ -121,11 +124,79 @@ public class FetchItApplication extends Application {
         settingsBar.setAlignment(Pos.CENTER_LEFT);
         settingsBar.setPadding(new Insets(5, 10, 5, 10));
 
-        VBox progressBox = new VBox(8,
-                buildProgressRow(totalProgressNameLabel, totalProgressBar, totalProgressLabel),
-                buildProgressRow(fileProgressNameLabel, fileProgressBar, fileProgressLabel)
-        );
-        progressBox.setPadding(new Insets(0, 10, 10, 10));
+        queueTable.setItems(downloadQueue);
+        VBox.setVgrow(queueTable, Priority.ALWAYS);
+
+        titleCol.setCellValueFactory(cell -> cell.getValue().titleProperty());
+        titleCol.setPrefWidth(300);
+
+        statusCol.setCellValueFactory(cell -> cell.getValue().statusProperty());
+        statusCol.setPrefWidth(150);
+        statusCol.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(DownloadItem.Status item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(lang.get("status." + item.name().toLowerCase()));
+                }
+            }
+        });
+
+        progressCol.setCellValueFactory(cell -> cell.getValue().progressProperty());
+        progressCol.setPrefWidth(200);
+        progressCol.setCellFactory(column -> new TableCell<>() {
+            private final ProgressBar progressBar = new ProgressBar(0);
+            @Override
+            protected void updateItem(Number item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                } else {
+                    progressBar.setProgress(item.doubleValue() / 100.0);
+                    setGraphic(progressBar);
+                }
+            }
+        });
+
+        queueTable.getColumns().addAll(titleCol, statusCol, progressCol);
+
+        cancelMenu.setText(lang.get("menu.cancel"));
+        removeMenu.setText(lang.get("menu.remove"));
+
+        cancelMenu.setOnAction(e -> {
+            DownloadItem selected = queueTable.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                selected.cancel();
+                queueTable.refresh();
+            }
+        });
+
+        removeMenu.setOnAction(e -> {
+            DownloadItem selected = queueTable.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                if (selected.getStatus() != DownloadItem.Status.DONE &&
+                        selected.getStatus() != DownloadItem.Status.ERROR &&
+                        selected.getStatus() != DownloadItem.Status.CANCELLED) {
+                    selected.cancel();
+                }
+                downloadQueue.remove(selected);
+            }
+        });
+
+        ContextMenu contextMenu = new ContextMenu(cancelMenu, removeMenu);
+        contextMenu.setOnShowing(e -> {
+            DownloadItem selected = queueTable.getSelectionModel().getSelectedItem();
+            boolean isActive = selected != null &&
+                    (selected.getStatus() == DownloadItem.Status.WAITING ||
+                            selected.getStatus() == DownloadItem.Status.FETCHING ||
+                            selected.getStatus() == DownloadItem.Status.DOWNLOADING ||
+                            selected.getStatus() == DownloadItem.Status.PROCESSING);
+            cancelMenu.setDisable(!isActive);
+        });
+
+        queueTable.setContextMenu(contextMenu);
 
         summaryLabel.setPadding(new Insets(0, 10, 10, 10));
         summaryLabel.setStyle("-fx-font-family: monospace;");
@@ -137,7 +208,7 @@ public class FetchItApplication extends Application {
         logsPane.setExpanded(false);
         logsPane.setPadding(new Insets(0, 10, 10, 10));
 
-        VBox root = new VBox(topBar, settingsBar, progressBox, summaryLabel, logsPane);
+        VBox root = new VBox(topBar, settingsBar, queueTable, summaryLabel, logsPane);
         root.setPadding(new Insets(0));
 
         Scene scene = new Scene(root, 1000, 650);
@@ -150,20 +221,6 @@ public class FetchItApplication extends Application {
         updateButton.setOnAction(e -> onUpdateClick());
         settingsButton.setOnAction(e -> onSettingsClick());
         updateTexts();
-    }
-
-    private HBox buildProgressRow(Label  nameLabel, ProgressBar bar, Label percentLabel) {
-        nameLabel.setMinWidth(130);
-
-        bar.setPrefWidth(Double.MAX_VALUE);
-        HBox.setHgrow(bar, Priority.ALWAYS);
-
-        percentLabel.setMinWidth(60);
-        percentLabel.setAlignment(Pos.CENTER_RIGHT);
-
-        HBox row = new HBox(10, nameLabel, bar, percentLabel);
-        row.setAlignment(Pos.CENTER_LEFT);
-        return row;
     }
 
     private void onChooseDirClick(Stage stage) {
@@ -199,110 +256,13 @@ public class FetchItApplication extends Application {
                 selectedPreset
         );
 
-        downloadButton.setDisable(true);
-        updateButton.setDisable(true);
-        totalProgressBar.setProgress(0);
-        fileProgressBar.setProgress(0);
-        totalProgressLabel.setText("0%");
-        fileProgressLabel.setText("0%");
-        summaryLabel.setText("");
-        outputArea.clear();
+        DownloadItem item = new DownloadItem(url, config);
+        downloadQueue.add(item);
+        urlField.clear();
+        appendOutput(lang.get("status.added_to_queue") + "\n");
+        queueManager.processQueue();
 
-        appendOutput(lang.get("status.checking_files") + "\n");
-
-        Task<DownloadStats> task = new Task<>() {
-            @Override
-            protected DownloadStats call() {
-                DownloaderScanner scanner = new DownloaderScanner();
-                Set<String> downloadedIds = scanner.scanDownloadedIds(config.getOutputDir());
-
-                PlaylistFetchResult fetchResult = ytDlpService.getPlaylistVideoIds(
-                        config.getUrl(),
-                        line -> Platform.runLater(() -> appendOutput(line + "\n"))
-                );
-
-                if (!fetchResult.isSuccess()) {
-                    DownloadStats failed = new DownloadStats();
-                    failed.incrementErrors();
-                    failed.addError(fetchResult.error(), "fetch failed");
-                    return failed;
-                }
-
-                List<String> allIds = fetchResult.ids();
-
-                List<String> toDownload = allIds.stream()
-                        .filter(id -> !downloadedIds.contains(id))
-                        .toList();
-
-                long alreadyOnDisk = allIds.stream()
-                        .filter(downloadedIds::contains)
-                        .count();
-
-                Platform.runLater(() -> {
-                    appendOutput(lang.get("status.found_local") + downloadedIds.size() + "\n");
-                    appendOutput(lang.get("status.playlist_total") + allIds.size() + "\n");
-                    appendOutput(lang.get("status.already_on_disk") + alreadyOnDisk + "\n");
-                    appendOutput(lang.get("status.to_download") + toDownload.size() + "\n\n");
-                });
-
-                if (toDownload.isEmpty()) {
-                    DownloadStats empty = new DownloadStats();
-                    empty.setPlaylistTotal(allIds.size());
-                    empty.setAlreadyOnDisk((int) alreadyOnDisk);
-                    return empty;
-                }
-
-                DownloadStats stats = ytDlpService.downloadByIds(
-                        config,
-                        toDownload,
-                        line -> Platform.runLater(() -> appendOutput(line + "\n")),
-                        update -> Platform.runLater(() -> updateProgressBars(update))
-                );
-
-                stats.setPlaylistTotal(allIds.size());
-                stats.setAlreadyOnDisk((int) alreadyOnDisk);
-                return stats;
-            }
-        };
-
-        task.setOnSucceeded(event -> {
-            DownloadStats stats = task.getValue();
-            if (stats.getDownloadedCount() == 0 && stats.getErrorsCount() == 0) {
-                summaryLabel.setText(lang.get("status.all_downloaded") + "\n");
-            } else {
-                summaryLabel.setText(stats.toSummary());
-            }
-            totalProgressBar.setProgress(1.0);
-            fileProgressBar.setProgress(1.0);
-            totalProgressLabel.setText("100%");
-            fileProgressLabel.setText("100%");
-            downloadButton.setDisable(false);
-            updateButton.setDisable(false);
-        });
-
-        task.setOnFailed(event -> {
-            appendOutput("\n" + lang.get("status.error_prefix") + task.getException().getMessage() + " ===\n");
-            downloadButton.setDisable(false);
-            updateButton.setDisable(false);
-        });
-
-        new Thread(task).start();
-    }
-
-    private void updateProgressBars(ProgressUpdate update) {
-        double filePercent = update.filePercent();
-        fileProgressBar.setProgress(filePercent / 100.0);
-        fileProgressLabel.setText(String.format("%.0f%%", filePercent));
-
-        if (update.totalItems() > 0) {
-            double overall = (double) update.completedItems() / update.totalItems();
-            totalProgressBar.setProgress(overall);
-            totalProgressLabel.setText(String.format("%d/%d (%.0f%%)",
-                    update.completedItems(), update.totalItems(), overall * 100));
-        } else {
-            totalProgressBar.setProgress(filePercent / 100.0);
-            totalProgressLabel.setText(String.format("%.0f%%", filePercent));
-        }
+        queueManager.processQueue();
     }
 
     private void onUpdateClick() {
@@ -356,8 +316,11 @@ public class FetchItApplication extends Application {
     private void updateTexts() {
         urlField.setPromptText(lang.get("field.url"));
         proxyField.setPromptText(lang.get("field.proxy"));
-        totalProgressNameLabel.setText(lang.get("status.total_progress"));
-        fileProgressNameLabel.setText(lang.get("status.current_file"));
+        titleCol.setText(lang.get("column.title"));
+        statusCol.setText(lang.get("column.status"));
+        progressCol.setText(lang.get("column.progress"));
+        queueTable.setPlaceholder(new Label(lang.get("status.queue_empty")));
+        queueTable.refresh();
 
         downloadButton.setText(lang.get("button.download"));
         updateButton.setText(lang.get("button.update"));

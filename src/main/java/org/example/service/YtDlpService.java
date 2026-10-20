@@ -151,7 +151,8 @@ public class YtDlpService {
     public DownloadStats downloadByIds(DownloadConfig config,
                                        List<String> videoIds,
                                        Consumer<String> onOutput,
-                                       Consumer<ProgressUpdate> onProgress) {
+                                       Consumer<ProgressUpdate> onProgress,
+                                       Consumer<Process> onProcessStarted) {
         if (videoIds.isEmpty()) {
             return new DownloadStats();
         }
@@ -170,7 +171,7 @@ public class YtDlpService {
                     config.getPreset()
             );
 
-            DownloadStats stats = downloadFromFile(listConfig, videoIds.size(), onOutput, onProgress);
+            DownloadStats stats = downloadFromFile(listConfig, videoIds.size(), onOutput, onProgress, onProcessStarted);
             stats.setTotalItems(videoIds.size());
 
             Files.deleteIfExists(tempFile);
@@ -185,7 +186,8 @@ public class YtDlpService {
     private DownloadStats downloadFromFile(DownloadConfig config,
                                            int expectedTotal,
                                            Consumer<String> onOutput,
-                                           Consumer<ProgressUpdate> onProgress) {
+                                           Consumer<ProgressUpdate> onProgress,
+                                           Consumer<Process> onProcessStarted) {
         OutputParser parser = new OutputParser(expectedTotal);
         try {
             List<String> command = new ArrayList<>();
@@ -295,6 +297,7 @@ public class YtDlpService {
 
             ProcessBuilder pb = new ProcessBuilder(command);
             Process process = pb.start();
+            onProcessStarted.accept(process);
 
             Thread stdoutThread = new Thread(() -> {
                 try (BufferedReader reader = new BufferedReader(
