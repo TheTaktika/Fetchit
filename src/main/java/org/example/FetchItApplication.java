@@ -19,28 +19,35 @@ import org.example.model.*;
 import org.example.scanner.DownloaderScanner;
 import org.example.service.PresetStorage;
 import org.example.service.YtDlpService;
+import org.example.ui.LanguageManager;
 import org.example.ui.PresetEditorDialog;
 
 import java.io.File;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 public class FetchItApplication extends Application {
+    private final ComboBox<String> langComboBox = new ComboBox<>();
+    private final LanguageManager lang = LanguageManager.getInstance();
+    private final TitledPane logsPane = new TitledPane();
+    private final Label totalProgressNameLabel = new Label();
+    private final Label fileProgressNameLabel  = new Label();
 
     private final TextField urlField = new TextField();
     private final TextField proxyField = new TextField();
-    private final Label outputDirLabel = new Label("Папка: test_output");
-    private final Button chooseDirButton = new Button("Папка…");
-    private final Button downloadButton = new Button("Скачать");
-    private final Button updateButton = new Button("Обновить yt-dlp");
+    private final Label outputDirLabel = new Label();
+    private final Button chooseDirButton = new Button();
+    private final Button downloadButton = new Button();
+    private final Button updateButton = new Button();
 
     private final ProgressBar totalProgressBar = new ProgressBar(0);
-    private final Label totalProgressLabel = new Label("0%");
+    private final Label totalProgressLabel = new Label();
     private final ProgressBar fileProgressBar = new ProgressBar(0);
-    private final Label fileProgressLabel = new Label("0%");
+    private final Label fileProgressLabel = new Label();
 
     private final ComboBox<Preset> presetComboBox = new ComboBox<>();
-    private final Button settingsButton = new Button("Настройки");
+    private final Button settingsButton = new Button();
     private final PresetStorage presetStorage = new PresetStorage();
     private List<Preset> presets;
 
@@ -63,13 +70,23 @@ public class FetchItApplication extends Application {
         } catch (Exception e) {
             System.err.println("Не удалось загрузить иконку: " + e.getMessage());
         }
-        urlField.setPromptText("Вставьте ссылку на видео или плейлист");
+        urlField.setPromptText(lang.get("field.url"));
         HBox.setHgrow(urlField, Priority.ALWAYS);
-        HBox topBar = new HBox(10, urlField, downloadButton, updateButton);
+        langComboBox.getItems().addAll("RU", "EN");
+        langComboBox.setValue(lang.getCurrentLocale().getLanguage().equals("ru") ? "RU" : "EN");
+        langComboBox.setPrefWidth(70);
+
+        langComboBox.setOnAction(e -> {
+            String selected = langComboBox.getValue();
+            Locale newLocale = selected.equals("RU") ? Locale.of("ru") : Locale.of("en");
+            lang.setLocale(newLocale);
+            updateTexts();
+        });
+        HBox topBar = new HBox(10, urlField, downloadButton, updateButton, langComboBox);
         topBar.setAlignment(Pos.CENTER);
         topBar.setPadding(new Insets(10, 10, 5, 10));
 
-        proxyField.setPromptText("Прокси (необязательно), напр. socks5://127.0.0.1:10808");
+        proxyField.setPromptText(lang.get("field.proxy"));
         proxyField.setPrefWidth(300);
         presets = presetStorage.load();
         ObservableList<Preset> presetItems = FXCollections.observableArrayList(presets);
@@ -99,14 +116,14 @@ public class FetchItApplication extends Application {
                 new Label("|"),
                 proxyField,
                 new Label("|"),
-                new Label("Пресет:"), presetComboBox, settingsButton
+                new Label(lang.get("label.preset")), presetComboBox, settingsButton
         );
         settingsBar.setAlignment(Pos.CENTER_LEFT);
         settingsBar.setPadding(new Insets(5, 10, 5, 10));
 
         VBox progressBox = new VBox(8,
-                buildProgressRow("Общий прогресс:", totalProgressBar, totalProgressLabel),
-                buildProgressRow("Текущий файл:   ", fileProgressBar, fileProgressLabel)
+                buildProgressRow(totalProgressNameLabel, totalProgressBar, totalProgressLabel),
+                buildProgressRow(fileProgressNameLabel, fileProgressBar, fileProgressLabel)
         );
         progressBox.setPadding(new Insets(0, 10, 10, 10));
 
@@ -116,7 +133,7 @@ public class FetchItApplication extends Application {
         outputArea.setEditable(false);
         outputArea.setWrapText(false);
         outputArea.setPrefHeight(300);
-        TitledPane logsPane = new TitledPane("Логи (для разработки)", outputArea);
+        logsPane.setContent(outputArea);
         logsPane.setExpanded(false);
         logsPane.setPadding(new Insets(0, 10, 10, 10));
 
@@ -124,7 +141,7 @@ public class FetchItApplication extends Application {
         root.setPadding(new Insets(0));
 
         Scene scene = new Scene(root, 1000, 650);
-        stage.setTitle("FetchIt");
+        stage.setTitle(lang.get("app.title"));
         stage.setScene(scene);
         stage.show();
 
@@ -132,10 +149,10 @@ public class FetchItApplication extends Application {
         downloadButton.setOnAction(e -> onDownloadClick());
         updateButton.setOnAction(e -> onUpdateClick());
         settingsButton.setOnAction(e -> onSettingsClick());
+        updateTexts();
     }
 
-    private HBox buildProgressRow(String labelText, ProgressBar bar, Label percentLabel) {
-        Label nameLabel = new Label(labelText);
+    private HBox buildProgressRow(Label  nameLabel, ProgressBar bar, Label percentLabel) {
         nameLabel.setMinWidth(130);
 
         bar.setPrefWidth(Double.MAX_VALUE);
@@ -151,27 +168,27 @@ public class FetchItApplication extends Application {
 
     private void onChooseDirClick(Stage stage) {
         DirectoryChooser chooser = new DirectoryChooser();
-        chooser.setTitle("Выберите папку для сохранения");
+        chooser.setTitle(lang.get("dialog.choose_dir_title"));
         if (selectedDir.exists()) {
             chooser.setInitialDirectory(selectedDir);
         }
         File dir = chooser.showDialog(stage);
         if (dir != null) {
             selectedDir = dir;
-            outputDirLabel.setText("Папка: " + dir.getAbsolutePath());
+            outputDirLabel.setText(lang.get("label.folder") + " " + dir.getAbsolutePath());
         }
     }
 
     private void onDownloadClick() {
         String url = urlField.getText().trim();
         if (url.isEmpty()) {
-            appendOutput("Ошибка: введите ссылку.\n");
+            appendOutput(lang.get("error.empty_url") + "\n");
             return;
         }
 
         Preset selectedPreset = presetComboBox.getValue();
         if (selectedPreset == null) {
-            appendOutput("Ошибка: не выбран пресет.\n");
+            appendOutput(lang.get("error.no_preset") + "\n");
             return;
         }
 
@@ -191,7 +208,7 @@ public class FetchItApplication extends Application {
         summaryLabel.setText("");
         outputArea.clear();
 
-        appendOutput("=== Проверка уже скачанных файлов ===\n");
+        appendOutput(lang.get("status.checking_files") + "\n");
 
         Task<DownloadStats> task = new Task<>() {
             @Override
@@ -222,10 +239,10 @@ public class FetchItApplication extends Application {
                         .count();
 
                 Platform.runLater(() -> {
-                    appendOutput("Найдено локальных MP3: " + downloadedIds.size() + "\n");
-                    appendOutput("Всего в плейлисте: " + allIds.size() + "\n");
-                    appendOutput("Уже было на диске: " + alreadyOnDisk + "\n");
-                    appendOutput("К загрузке: " + toDownload.size() + "\n\n");
+                    appendOutput(lang.get("status.found_local") + downloadedIds.size() + "\n");
+                    appendOutput(lang.get("status.playlist_total") + allIds.size() + "\n");
+                    appendOutput(lang.get("status.already_on_disk") + alreadyOnDisk + "\n");
+                    appendOutput(lang.get("status.to_download") + toDownload.size() + "\n\n");
                 });
 
                 if (toDownload.isEmpty()) {
@@ -251,7 +268,7 @@ public class FetchItApplication extends Application {
         task.setOnSucceeded(event -> {
             DownloadStats stats = task.getValue();
             if (stats.getDownloadedCount() == 0 && stats.getErrorsCount() == 0) {
-                summaryLabel.setText("Все видео уже скачаны. Ничего загружать не нужно.\n");
+                summaryLabel.setText(lang.get("status.all_downloaded") + "\n");
             } else {
                 summaryLabel.setText(stats.toSummary());
             }
@@ -264,7 +281,7 @@ public class FetchItApplication extends Application {
         });
 
         task.setOnFailed(event -> {
-            appendOutput("\n=== Ошибка: " + task.getException().getMessage() + " ===\n");
+            appendOutput("\n" + lang.get("status.error_prefix") + task.getException().getMessage() + " ===\n");
             downloadButton.setDisable(false);
             updateButton.setDisable(false);
         });
@@ -291,7 +308,7 @@ public class FetchItApplication extends Application {
     private void onUpdateClick() {
         downloadButton.setDisable(true);
         updateButton.setDisable(true);
-        appendOutput("\n=== Проверка обновлений yt-dlp ===\n");
+        appendOutput("\n" + lang.get("status.checking_updates") + "\n");
 
         Task<Integer> task = new Task<>() {
             @Override
@@ -303,13 +320,13 @@ public class FetchItApplication extends Application {
         };
 
         task.setOnSucceeded(event -> {
-            appendOutput("=== Готово. Код: " + task.getValue() + " ===\n");
+            appendOutput(lang.get("status.done_code") + task.getValue() + " ===\n");
             downloadButton.setDisable(false);
             updateButton.setDisable(false);
         });
 
         task.setOnFailed(event -> {
-            appendOutput("=== Ошибка: " + task.getException().getMessage() + " ===\n");
+            appendOutput(lang.get("status.error_prefix") + task.getException().getMessage() + " ===\n");
             downloadButton.setDisable(false);
             updateButton.setDisable(false);
         });
@@ -333,6 +350,26 @@ public class FetchItApplication extends Application {
         presetComboBox.setItems(FXCollections.observableArrayList(presets));
         if (!presets.isEmpty()) {
             presetComboBox.getSelectionModel().selectFirst();
+        }
+    }
+
+    private void updateTexts() {
+        urlField.setPromptText(lang.get("field.url"));
+        proxyField.setPromptText(lang.get("field.proxy"));
+        totalProgressNameLabel.setText(lang.get("status.total_progress"));
+        fileProgressNameLabel.setText(lang.get("status.current_file"));
+
+        downloadButton.setText(lang.get("button.download"));
+        updateButton.setText(lang.get("button.update"));
+        settingsButton.setText(lang.get("button.settings"));
+        chooseDirButton.setText(lang.get("button.folder"));
+
+        outputDirLabel.setText(lang.get("label.folder") + " " + selectedDir.getName());
+        logsPane.setText(lang.get("pane.logs"));
+
+        Stage stage = (Stage) downloadButton.getScene().getWindow();
+        if (stage != null) {
+            stage.setTitle(lang.get("app.title"));
         }
     }
 }

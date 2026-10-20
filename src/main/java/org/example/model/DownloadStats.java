@@ -1,5 +1,7 @@
 package org.example.model;
 
+import org.example.ui.LanguageManager;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -86,24 +88,26 @@ public class DownloadStats {
     public String toSummary() {
         StringBuilder sb = new StringBuilder();
         if (getPlaylistTotal() > 0) {
-            sb.append("Всего в плейлисте: ").append(playlistTotal).append("\n");
+            sb.append(LanguageManager.getInstance().get("status.playlist_total")).append(" ").append(getPlaylistTotal()).append("\n");
         }
         if (getAlreadyOnDisk() > 0) {
-            sb.append("Уже было на диске: ").append(alreadyOnDisk).append("\n");
+            sb.append(LanguageManager.getInstance().get("status.already_on_disk")).append(" ").append(alreadyOnDisk).append("\n");
         }
-        sb.append("К загрузке: ").append(downloadedCount + skippedCount + errorsCount).append("\n");
-        sb.append("Скачано: ").append(downloadedCount).append("\n");
+        sb.append(LanguageManager.getInstance().get("status.to_download")).append(" ").append(downloadedCount + skippedCount + errorsCount).append("\n");
+        sb.append(LanguageManager.getInstance().get("status.downloaded")).append(" ").append(downloadedCount).append("\n");
         if (skippedCount > 0) {
-            sb.append("Пропущено: ").append(skippedCount).append("\n");
+            sb.append(LanguageManager.getInstance().get("status.skipped")).append(" ").append(skippedCount).append("\n");
         }
-        sb.append("Ошибок: ").append(errorsCount).append("\n");
+        sb.append(LanguageManager.getInstance().get("status.errors")).append(" ").append(errorsCount).append("\n");
 
         if (!classifiedErrors.isEmpty()) {
-            sb.append("\nОшибки:\n");
+            sb.append("\n").append(LanguageManager.getInstance().get("status.error_details")).append("\n");
             for (Map.Entry<ErrorType, List<String>> entry : classifiedErrors.entrySet()) {
                 ErrorType type = entry.getKey();
                 int count = entry.getValue().size();
-                sb.append("  • ").append(type.getUserMessage());
+                String errorText = LanguageManager.getInstance().get(type.getMessageKey());
+
+                sb.append("  • ").append(errorText);
                 if (count > 1) {
                     sb.append(" (x").append(count).append(")");
                 }

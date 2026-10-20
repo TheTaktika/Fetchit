@@ -35,8 +35,7 @@ public class PresetStorage {
         }
 
         try {
-            List<Preset> presets = mapper.readValue(file, new TypeReference<List<Preset>>() {
-            });
+            List<Preset> presets = mapper.readValue(file, new TypeReference<>() {});
             presets.forEach(this::normalize);
             return presets;
         } catch (Exception e) {
