@@ -6,7 +6,6 @@ import javafx.concurrent.Task;
 import org.example.model.*;
 import org.example.scanner.DownloaderScanner;
 import org.example.ui.LanguageManager;
-import org.example.model.PlaylistFetchResult;
 
 import java.util.List;
 import java.util.Set;
@@ -16,7 +15,7 @@ public class QueueManager {
     private final ObservableList<DownloadItem> queue;
     private final YtDlpService ytDlpService;
     private final Consumer<String> logCallback;
-    private boolean isProcessing = false;
+    private DownloadItem currentItem = null;
 
     public QueueManager(ObservableList<DownloadItem> queue, YtDlpService ytDlpService, Consumer<String> logCallback) {
         this.queue = queue;
@@ -25,19 +24,16 @@ public class QueueManager {
     }
 
     public void processQueue() {
-        if (isProcessing) return;
+        if (currentItem != null) return;
 
         DownloadItem nextItem = queue.stream()
                 .filter(item -> item.getStatus() == DownloadItem.Status.WAITING)
                 .findFirst()
                 .orElse(null);
 
-        if (nextItem == null) {
-            isProcessing = false;
-            return;
-        }
+        if (nextItem == null) return;
 
-        isProcessing = true;
+        currentItem = nextItem;
         startDownloadTask(nextItem);
     }
 
@@ -86,7 +82,6 @@ public class QueueManager {
                                 double currentFileFraction = update.filePercent() / 100.0;
                                 percent = ((update.completedItems() + currentFileFraction) / update.totalItems()) * 100.0;
                             }
-
                             if (percent >= 100.0) {
                                 item.setProgress(99.0);
                                 if (item.getStatus() == DownloadItem.Status.DOWNLOADING) {
@@ -99,7 +94,7 @@ public class QueueManager {
                         process -> item.setCurrentProcess(process)
                 );
 
-                if (item.getStatus() == DownloadItem.Status.CANCELLED) {
+                if (item.getStatus() == DownloadItem.Status.CANCELLED || item.getStatus() == DownloadItem.Status.PAUSED) {
                     return null;
                 }
 
@@ -114,20 +109,46 @@ public class QueueManager {
             }
         };
 
-        task.setOnSucceeded(e -> {
-            isProcessing = false;
-            processQueue();
-            item.setCurrentProcess(null);
-        });
-
+        task.setOnSucceeded(e -> finishTask(item));
         task.setOnFailed(e -> {
-            item.setStatus(DownloadItem.Status.ERROR);
-            Platform.runLater(() -> logCallback.accept(LanguageManager.getInstance().get("status.error_prefix") + task.getException().getMessage() + "\n"));
-            isProcessing = false;
-            processQueue();
-            item.setCurrentProcess(null);
+            if (item.getStatus() != DownloadItem.Status.CANCELLED && item.getStatus() != DownloadItem.Status.PAUSED) {
+                item.setStatus(DownloadItem.Status.ERROR);
+                Platform.runLater(() -> logCallback.accept(LanguageManager.getInstance().get("status.error_prefix") + task.getException().getMessage() + "\n"));
+            }
+            finishTask(item);
         });
 
         new Thread(task).start();
+    }
+
+    private void finishTask(DownloadItem item) {
+        item.setCurrentProcess(null);
+        if (currentItem == item) {
+            currentItem = null;
+            processQueue();
+        }
+    }
+
+    public void cancelItem(DownloadItem item) {
+        item.cancel();
+        if (currentItem == item) {
+            currentItem = null;
+            processQueue();
+        }
+    }
+
+    public void pauseItem(DownloadItem item) {
+        item.pause();
+        if (currentItem == item) {
+            currentItem = null;
+            processQueue();
+        }
+    }
+
+    public void resumeItem(DownloadItem item) {
+        if (item.getStatus() == DownloadItem.Status.PAUSED || item.getStatus() == DownloadItem.Status.CANCELLED || item.getStatus() == DownloadItem.Status.ERROR) {
+            item.setStatus(DownloadItem.Status.WAITING);
+            processQueue();
+        }
     }
 }

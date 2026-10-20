@@ -5,7 +5,7 @@ import javafx.beans.property.*;
 public class DownloadItem {
 
     public enum Status {
-        WAITING, FETCHING, DOWNLOADING, PROCESSING, DONE, ERROR, CANCELLED
+        WAITING, FETCHING, DOWNLOADING, PROCESSING, DONE, ERROR, CANCELLED, PAUSED
     }
 
     private final StringProperty url = new SimpleStringProperty();
@@ -44,7 +44,17 @@ public class DownloadItem {
 
     public void cancel() {
         setStatus(Status.CANCELLED);
+        killProcess();
+    }
+
+    public void pause() {
+        setStatus(Status.PAUSED);
+        killProcess();
+    }
+
+    private void killProcess() {
         if (currentProcess != null && currentProcess.isAlive()) {
+            currentProcess.descendants().forEach(ProcessHandle::destroyForcibly);
             currentProcess.destroyForcibly();
         }
     }

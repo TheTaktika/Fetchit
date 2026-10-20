@@ -59,6 +59,10 @@ public class FetchItApplication extends Application {
 
     private final MenuItem cancelMenu = new MenuItem();
     private final MenuItem removeMenu = new MenuItem();
+    private final MenuItem pauseMenu = new MenuItem();
+    private final MenuItem resumeMenu = new MenuItem();
+    private final MenuItem moveUpMenu = new MenuItem();
+    private final MenuItem moveDownMenu = new MenuItem();
 
     @Override
     public void start(Stage stage) {
@@ -164,6 +168,10 @@ public class FetchItApplication extends Application {
 
         cancelMenu.setText(lang.get("menu.cancel"));
         removeMenu.setText(lang.get("menu.remove"));
+        pauseMenu.setText(lang.get("menu.pause"));
+        resumeMenu.setText(lang.get("menu.resume"));
+        moveUpMenu.setText(lang.get("menu.move_up"));
+        moveDownMenu.setText(lang.get("menu.move_down"));
 
         cancelMenu.setOnAction(e -> {
             DownloadItem selected = queueTable.getSelectionModel().getSelectedItem();
@@ -185,15 +193,47 @@ public class FetchItApplication extends Application {
             }
         });
 
-        ContextMenu contextMenu = new ContextMenu(cancelMenu, removeMenu);
+        pauseMenu.setOnAction(e -> {
+            DownloadItem selected = queueTable.getSelectionModel().getSelectedItem();
+            if (selected != null) queueManager.pauseItem(selected);
+        });
+
+        resumeMenu.setOnAction(e -> {
+            DownloadItem selected = queueTable.getSelectionModel().getSelectedItem();
+            if (selected != null) queueManager.resumeItem(selected);
+        });
+
+        moveUpMenu.setOnAction(e -> {
+            int index = queueTable.getSelectionModel().getSelectedIndex();
+            if (index > 0) {
+                java.util.Collections.swap(downloadQueue, index, index - 1);
+                queueTable.getSelectionModel().select(index - 1);
+            }
+        });
+
+        moveDownMenu.setOnAction(e -> {
+            int index = queueTable.getSelectionModel().getSelectedIndex();
+            if (index >= 0 && index < downloadQueue.size() - 1) {
+                java.util.Collections.swap(downloadQueue, index, index + 1);
+                queueTable.getSelectionModel().select(index + 1);
+            }
+        });
+
+        ContextMenu contextMenu = new ContextMenu(pauseMenu, resumeMenu, cancelMenu, moveUpMenu, moveDownMenu, removeMenu);
         contextMenu.setOnShowing(e -> {
             DownloadItem selected = queueTable.getSelectionModel().getSelectedItem();
-            boolean isActive = selected != null &&
-                    (selected.getStatus() == DownloadItem.Status.WAITING ||
-                            selected.getStatus() == DownloadItem.Status.FETCHING ||
-                            selected.getStatus() == DownloadItem.Status.DOWNLOADING ||
-                            selected.getStatus() == DownloadItem.Status.PROCESSING);
-            cancelMenu.setDisable(!isActive);
+            if (selected == null) return;
+
+            boolean isActive = (selected.getStatus() == DownloadItem.Status.FETCHING ||
+                    selected.getStatus() == DownloadItem.Status.DOWNLOADING ||
+                    selected.getStatus() == DownloadItem.Status.PROCESSING);
+
+            pauseMenu.setDisable(!isActive);
+            cancelMenu.setDisable(!isActive && selected.getStatus() != DownloadItem.Status.WAITING);
+
+            resumeMenu.setDisable(selected.getStatus() != DownloadItem.Status.PAUSED &&
+                    selected.getStatus() != DownloadItem.Status.CANCELLED &&
+                    selected.getStatus() != DownloadItem.Status.ERROR);
         });
 
         queueTable.setContextMenu(contextMenu);
@@ -261,8 +301,6 @@ public class FetchItApplication extends Application {
         urlField.clear();
         appendOutput(lang.get("status.added_to_queue") + "\n");
         queueManager.processQueue();
-
-        queueManager.processQueue();
     }
 
     private void onUpdateClick() {
@@ -326,6 +364,13 @@ public class FetchItApplication extends Application {
         updateButton.setText(lang.get("button.update"));
         settingsButton.setText(lang.get("button.settings"));
         chooseDirButton.setText(lang.get("button.folder"));
+
+        pauseMenu.setText(lang.get("menu.pause"));
+        resumeMenu.setText(lang.get("menu.resume"));
+        cancelMenu.setText(lang.get("menu.cancel"));
+        removeMenu.setText(lang.get("menu.remove"));
+        moveUpMenu.setText(lang.get("menu.move_up"));
+        moveDownMenu.setText(lang.get("menu.move_down"));
 
         outputDirLabel.setText(lang.get("label.folder") + " " + selectedDir.getName());
         logsPane.setText(lang.get("pane.logs"));
