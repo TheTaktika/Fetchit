@@ -174,7 +174,7 @@ public class PresetEditorDialog {
         grid.add(new Label(lang.get("preset.sponsorblock")), 0, row); grid.add(sponsorblockRemoveField, 1, row++);
         sponsorblockRemoveField.setPromptText(lang.get("preset.prompt_sponsorblock"));
         grid.add(keepVideoBox, 0, row++, 2, 1);
-        grid.add(noOverwritesBox, 0, row++, 2, 1);
+        grid.add(noOverwritesBox, 0, row, 2, 1);
 
         ScrollPane scroll = new ScrollPane(grid);
         scroll.setFitToWidth(true);

@@ -49,7 +49,7 @@ class PresetStorageTest {
         List<Preset> loaded = storage.load();
 
         assertEquals(1, loaded.size());
-        Preset loadedPreset = loaded.get(0);
+        Preset loadedPreset = loaded.getFirst();
         assertEquals("My Custom", loadedPreset.getName());
         assertEquals("flac", loadedPreset.getAudioFormat());
         assertEquals(3, loadedPreset.getAudioQuality());
@@ -68,8 +68,8 @@ class PresetStorageTest {
 
         List<Preset> loaded = storage.load();
         assertEquals(1, loaded.size());
-        assertEquals(1, loaded.get(0).getConcurrentFragments());
-        assertEquals(10, loaded.get(0).getRetries());
+        assertEquals(1, loaded.getFirst().getConcurrentFragments());
+        assertEquals(10, loaded.getFirst().getRetries());
     }
 
     @Test
@@ -81,8 +81,8 @@ class PresetStorageTest {
         storage.save(List.of(p));
 
         List<Preset> loaded = storage.load();
-        assertEquals("mp3", loaded.get(0).getAudioFormat());
-        assertEquals("mp4", loaded.get(0).getMergeOutputFormat());
+        assertEquals("mp3", loaded.getFirst().getAudioFormat());
+        assertEquals("mp4", loaded.getFirst().getMergeOutputFormat());
     }
 
     @Test
@@ -95,7 +95,7 @@ class PresetStorageTest {
 
         List<Preset> presets = storage.load();
         assertEquals(2, presets.size());
-        assertEquals("MP3 High Quality", presets.get(0).getName());
+        assertEquals("MP3 High Quality", presets.getFirst().getName());
     }
 
     @Test

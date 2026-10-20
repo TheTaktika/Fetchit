@@ -365,9 +365,7 @@ public class FetchItApplication extends Application {
         chooseDirButton.setText(lang.get("button.folder"));
 
         outputDirLabel.setText(lang.get("label.folder") + " " + selectedDir.getName());
-        if (logsPane != null) {
-            logsPane.setText(lang.get("pane.logs"));
-        }
+        logsPane.setText(lang.get("pane.logs"));
 
         Stage stage = (Stage) downloadButton.getScene().getWindow();
         if (stage != null) {

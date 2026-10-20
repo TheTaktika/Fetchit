@@ -87,8 +87,8 @@ public class DownloadStats {
 
     public String toSummary() {
         StringBuilder sb = new StringBuilder();
-        if (playlistTotal > 0) {
-            sb.append(LanguageManager.getInstance().get("status.playlist_total")).append(" ").append(playlistTotal).append("\n");
+        if (getPlaylistTotal() > 0) {
+            sb.append(LanguageManager.getInstance().get("status.playlist_total")).append(" ").append(getPlaylistTotal()).append("\n");
         }
         if (getAlreadyOnDisk() > 0) {
             sb.append(LanguageManager.getInstance().get("status.already_on_disk")).append(" ").append(alreadyOnDisk).append("\n");
