@@ -125,6 +125,7 @@ public class Preset {
         return recodeVideo;
     }
 
+    @SuppressWarnings("unused")
     public void setRecodeVideo(String recodeVideo) {
         this.recodeVideo = recodeVideo;
     }
@@ -213,6 +214,7 @@ public class Preset {
         return sponsorblockMark;
     }
 
+    @SuppressWarnings("unused")
     public void setSponsorblockMark(String sponsorblockMark) {
         this.sponsorblockMark = sponsorblockMark;
     }

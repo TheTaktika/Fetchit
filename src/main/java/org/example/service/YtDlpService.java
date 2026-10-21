@@ -339,6 +339,7 @@ public class YtDlpService {
     }
 
     private File resolveBundleDir() {
+        //noinspection CatchMayIgnoreException
         try {
             File codeSource = new File(
                     YtDlpService.class.getProtectionDomain()
