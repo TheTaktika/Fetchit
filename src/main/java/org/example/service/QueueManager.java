@@ -84,14 +84,11 @@ public class QueueManager {
                             }
                             if (percent >= 100.0) {
                                 item.setProgress(99.0);
-                                if (item.getStatus() == DownloadItem.Status.DOWNLOADING) {
-                                    item.setStatus(DownloadItem.Status.PROCESSING);
-                                }
                             } else {
                                 item.setProgress(Math.min(percent, 99.0));
                             }
                         }),
-                        process -> item.setCurrentProcess(process)
+                        item::setCurrentProcess
                 );
 
                 if (item.getStatus() == DownloadItem.Status.CANCELLED || item.getStatus() == DownloadItem.Status.PAUSED) {
@@ -123,14 +120,6 @@ public class QueueManager {
 
     private void finishTask(DownloadItem item) {
         item.setCurrentProcess(null);
-        if (currentItem == item) {
-            currentItem = null;
-            processQueue();
-        }
-    }
-
-    public void cancelItem(DownloadItem item) {
-        item.cancel();
         if (currentItem == item) {
             currentItem = null;
             processQueue();

@@ -1,5 +1,6 @@
 package org.example.model;
 
+@SuppressWarnings("ClassCanBeRecord")
 public class DownloadConfig {
 
     private final String url;

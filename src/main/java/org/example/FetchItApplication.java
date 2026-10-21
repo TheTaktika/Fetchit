@@ -67,192 +67,28 @@ public class FetchItApplication extends Application {
     @Override
     public void start(Stage stage) {
         queueManager = new QueueManager(downloadQueue, ytDlpService, this::appendOutput);
+
         try {
             var iconStream = getClass().getResourceAsStream("/icon.png");
-            if (iconStream != null) {
-                stage.getIcons().add(new Image(iconStream));
-            } else {
-                System.err.println("icon.png не найден в resources");
-            }
+            if (iconStream != null) stage.getIcons().add(new Image(iconStream));
         } catch (Exception e) {
-            System.err.println("Не удалось загрузить иконку: " + e.getMessage());
-        }
-        urlField.setPromptText(lang.get("field.url"));
-        HBox.setHgrow(urlField, Priority.ALWAYS);
-        langComboBox.getItems().addAll("RU", "EN");
-        langComboBox.setValue(lang.getCurrentLocale().getLanguage().equals("ru") ? "RU" : "EN");
-        langComboBox.setPrefWidth(70);
-
-        langComboBox.setOnAction(e -> {
-            String selected = langComboBox.getValue();
-            Locale newLocale = selected.equals("RU") ? Locale.of("ru") : Locale.of("en");
-            lang.setLocale(newLocale);
-            updateTexts();
-        });
-        HBox topBar = new HBox(10, urlField, downloadButton, updateButton, langComboBox);
-        topBar.setAlignment(Pos.CENTER);
-        topBar.setPadding(new Insets(10, 10, 5, 10));
-
-        proxyField.setPromptText(lang.get("field.proxy"));
-        proxyField.setPrefWidth(300);
-        presets = presetStorage.load();
-        ObservableList<Preset> presetItems = FXCollections.observableArrayList(presets);
-
-        presetComboBox.setItems(presetItems);
-        presetComboBox.setPrefWidth(200);
-        presetComboBox.setCellFactory(lv -> new ListCell<>() {
-            @Override
-            protected void updateItem(Preset item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? null : item.getName());
-            }
-        });
-        presetComboBox.setButtonCell(new ListCell<>() {
-            @Override
-            protected void updateItem(Preset item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? null : item.getName());
-            }
-        });
-        if (!presetItems.isEmpty()) {
-            presetComboBox.getSelectionModel().selectFirst();
+            System.err.println(lang.get("app.icon") + e.getMessage());
         }
 
-        HBox settingsBar = new HBox(10,
-                chooseDirButton, outputDirLabel,
-                new Label("|"),
-                proxyField,
-                new Label("|"),
-                new Label(lang.get("label.preset")), presetComboBox, settingsButton
-        );
-        settingsBar.setAlignment(Pos.CENTER_LEFT);
-        settingsBar.setPadding(new Insets(5, 10, 5, 10));
-
-        queueTable.setItems(downloadQueue);
-        VBox.setVgrow(queueTable, Priority.ALWAYS);
-
-        titleCol.setCellValueFactory(cell -> cell.getValue().titleProperty());
-        titleCol.setPrefWidth(300);
-
-        statusCol.setCellValueFactory(cell -> cell.getValue().statusProperty());
-        statusCol.setPrefWidth(150);
-        statusCol.setCellFactory(column -> new TableCell<>() {
-            @Override
-            protected void updateItem(DownloadItem.Status item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText(null);
-                } else {
-                    setText(lang.get("status." + item.name().toLowerCase()));
-                }
-            }
-        });
-
-        progressCol.setCellValueFactory(cell -> cell.getValue().progressProperty());
-        progressCol.setPrefWidth(200);
-        progressCol.setCellFactory(column -> new TableCell<>() {
-            private final ProgressBar progressBar = new ProgressBar(0);
-            @Override
-            protected void updateItem(Number item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setGraphic(null);
-                } else {
-                    progressBar.setProgress(item.doubleValue() / 100.0);
-                    setGraphic(progressBar);
-                }
-            }
-        });
-
-        queueTable.getColumns().addAll(titleCol, statusCol, progressCol);
-
-        cancelMenu.setText(lang.get("menu.cancel"));
-        removeMenu.setText(lang.get("menu.remove"));
-        pauseMenu.setText(lang.get("menu.pause"));
-        resumeMenu.setText(lang.get("menu.resume"));
-        moveUpMenu.setText(lang.get("menu.move_up"));
-        moveDownMenu.setText(lang.get("menu.move_down"));
-
-        cancelMenu.setOnAction(e -> {
-            DownloadItem selected = queueTable.getSelectionModel().getSelectedItem();
-            if (selected != null) {
-                selected.cancel();
-                queueTable.refresh();
-            }
-        });
-
-        removeMenu.setOnAction(e -> {
-            DownloadItem selected = queueTable.getSelectionModel().getSelectedItem();
-            if (selected != null) {
-                if (selected.getStatus() != DownloadItem.Status.DONE &&
-                        selected.getStatus() != DownloadItem.Status.ERROR &&
-                        selected.getStatus() != DownloadItem.Status.CANCELLED) {
-                    selected.cancel();
-                }
-                downloadQueue.remove(selected);
-            }
-        });
-
-        pauseMenu.setOnAction(e -> {
-            DownloadItem selected = queueTable.getSelectionModel().getSelectedItem();
-            if (selected != null) queueManager.pauseItem(selected);
-        });
-
-        resumeMenu.setOnAction(e -> {
-            DownloadItem selected = queueTable.getSelectionModel().getSelectedItem();
-            if (selected != null) queueManager.resumeItem(selected);
-        });
-
-        moveUpMenu.setOnAction(e -> {
-            int index = queueTable.getSelectionModel().getSelectedIndex();
-            if (index > 0) {
-                java.util.Collections.swap(downloadQueue, index, index - 1);
-                queueTable.getSelectionModel().select(index - 1);
-            }
-        });
-
-        moveDownMenu.setOnAction(e -> {
-            int index = queueTable.getSelectionModel().getSelectedIndex();
-            if (index >= 0 && index < downloadQueue.size() - 1) {
-                java.util.Collections.swap(downloadQueue, index, index + 1);
-                queueTable.getSelectionModel().select(index + 1);
-            }
-        });
-
-        ContextMenu contextMenu = new ContextMenu(pauseMenu, resumeMenu, cancelMenu, moveUpMenu, moveDownMenu, removeMenu);
-        contextMenu.setOnShowing(e -> {
-            DownloadItem selected = queueTable.getSelectionModel().getSelectedItem();
-            if (selected == null) return;
-
-            boolean isActive = (selected.getStatus() == DownloadItem.Status.FETCHING ||
-                    selected.getStatus() == DownloadItem.Status.DOWNLOADING ||
-                    selected.getStatus() == DownloadItem.Status.PROCESSING);
-
-            pauseMenu.setDisable(!isActive);
-            cancelMenu.setDisable(!isActive && selected.getStatus() != DownloadItem.Status.WAITING);
-
-            resumeMenu.setDisable(selected.getStatus() != DownloadItem.Status.PAUSED &&
-                    selected.getStatus() != DownloadItem.Status.CANCELLED &&
-                    selected.getStatus() != DownloadItem.Status.ERROR);
-        });
-
-        queueTable.setContextMenu(contextMenu);
+        HBox topBar = buildTopBar();
+        HBox settingsBar = buildSettingsBar();
+        TableView<DownloadItem> table = buildQueueTable();
+        ContextMenu contextMenu = buildContextMenu();
+        table.setContextMenu(contextMenu);
+        TitledPane logs = buildLogsPane();
 
         summaryLabel.setPadding(new Insets(0, 10, 10, 10));
         summaryLabel.setStyle("-fx-font-family: monospace;");
 
-        outputArea.setEditable(false);
-        outputArea.setWrapText(false);
-        outputArea.setPrefHeight(300);
-        logsPane.setContent(outputArea);
-        logsPane.setExpanded(false);
-        logsPane.setPadding(new Insets(0, 10, 10, 10));
-
-        VBox root = new VBox(topBar, settingsBar, queueTable, summaryLabel, logsPane);
+        VBox root = new VBox(topBar, settingsBar, table, summaryLabel, logs);
         root.setPadding(new Insets(0));
 
         Scene scene = new Scene(root, 1000, 650);
-        stage.setTitle(lang.get("app.title"));
         stage.setScene(scene);
         stage.show();
 
@@ -260,6 +96,7 @@ public class FetchItApplication extends Application {
         downloadButton.setOnAction(e -> onDownloadClick());
         updateButton.setOnAction(e -> onUpdateClick());
         settingsButton.setOnAction(e -> onSettingsClick());
+
         updateTexts();
     }
 
@@ -375,9 +212,188 @@ public class FetchItApplication extends Application {
         outputDirLabel.setText(lang.get("label.folder") + " " + selectedDir.getName());
         logsPane.setText(lang.get("pane.logs"));
 
-        Stage stage = (Stage) downloadButton.getScene().getWindow();
-        if (stage != null) {
+        if (downloadButton.getScene() != null) {
+            Stage stage = (Stage) downloadButton.getScene().getWindow();
             stage.setTitle(lang.get("app.title"));
         }
+    }
+
+    private HBox buildTopBar() {
+        urlField.setPromptText(lang.get("field.url"));
+        HBox.setHgrow(urlField, Priority.ALWAYS);
+
+        langComboBox.getItems().addAll("RU", "EN");
+        langComboBox.setValue(lang.getCurrentLocale().getLanguage().equals("ru") ? "RU" : "EN");
+        langComboBox.setPrefWidth(70);
+        langComboBox.setOnAction(e -> {
+            String selected = langComboBox.getValue();
+            Locale newLocale = selected.equals("RU") ? Locale.of("ru") : Locale.of("en");
+            lang.setLocale(newLocale);
+            updateTexts();
+        });
+
+        HBox topBar = new HBox(10, urlField, downloadButton, updateButton, langComboBox);
+        topBar.setAlignment(Pos.CENTER);
+        topBar.setPadding(new Insets(10, 10, 5, 10));
+        return topBar;
+    }
+
+    private HBox buildSettingsBar() {
+        proxyField.setPromptText(lang.get("field.proxy"));
+        proxyField.setPrefWidth(300);
+
+        presets = presetStorage.load();
+        ObservableList<Preset> presetItems = FXCollections.observableArrayList(presets);
+        presetComboBox.setItems(presetItems);
+        presetComboBox.setPrefWidth(200);
+
+        presetComboBox.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(Preset item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.getName());
+            }
+        });
+        presetComboBox.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(Preset item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.getName());
+            }
+        });
+        if (!presetItems.isEmpty()) {
+            presetComboBox.getSelectionModel().selectFirst();
+        }
+
+        HBox settingsBar = new HBox(10,
+                chooseDirButton, outputDirLabel,
+                new Label("|"),
+                proxyField,
+                new Label("|"),
+                new Label(lang.get("label.preset")), presetComboBox, settingsButton
+        );
+        settingsBar.setAlignment(Pos.CENTER_LEFT);
+        settingsBar.setPadding(new Insets(5, 10, 5, 10));
+        return settingsBar;
+    }
+
+    private TableView<DownloadItem> buildQueueTable() {
+        queueTable.setItems(downloadQueue);
+        VBox.setVgrow(queueTable, Priority.ALWAYS);
+
+        titleCol.setCellValueFactory(cell -> cell.getValue().titleProperty());
+        titleCol.setPrefWidth(300);
+
+        statusCol.setCellValueFactory(cell -> cell.getValue().statusProperty());
+        statusCol.setPrefWidth(150);
+        statusCol.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(DownloadItem.Status item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(lang.get("status." + item.name().toLowerCase()));
+                }
+            }
+        });
+
+        progressCol.setCellValueFactory(cell -> cell.getValue().progressProperty());
+        progressCol.setPrefWidth(200);
+        progressCol.setCellFactory(column -> new TableCell<>() {
+            private final ProgressBar progressBar = new ProgressBar(0);
+
+            @Override
+            protected void updateItem(Number item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                } else {
+                    progressBar.setProgress(item.doubleValue() / 100.0);
+                    setGraphic(progressBar);
+                }
+            }
+        });
+
+        //noinspection unchecked
+        queueTable.getColumns().addAll(titleCol, statusCol, progressCol);
+        return queueTable;
+    }
+
+    @SuppressWarnings("ExtractMethodRecommender")
+    private ContextMenu buildContextMenu() {
+        cancelMenu.setOnAction(e -> {
+            DownloadItem selected = queueTable.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                selected.cancel();
+                queueTable.refresh();
+            }
+        });
+
+        removeMenu.setOnAction(e -> {
+            DownloadItem selected = queueTable.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                if (selected.getStatus() != DownloadItem.Status.DONE &&
+                        selected.getStatus() != DownloadItem.Status.ERROR &&
+                        selected.getStatus() != DownloadItem.Status.CANCELLED) {
+                    selected.cancel();
+                }
+                downloadQueue.remove(selected);
+            }
+        });
+
+        pauseMenu.setOnAction(e -> {
+            DownloadItem selected = queueTable.getSelectionModel().getSelectedItem();
+            if (selected != null) queueManager.pauseItem(selected);
+        });
+
+        resumeMenu.setOnAction(e -> {
+            DownloadItem selected = queueTable.getSelectionModel().getSelectedItem();
+            if (selected != null) queueManager.resumeItem(selected);
+        });
+
+        moveUpMenu.setOnAction(e -> {
+            int index = queueTable.getSelectionModel().getSelectedIndex();
+            if (index > 0) {
+                java.util.Collections.swap(downloadQueue, index, index - 1);
+                queueTable.getSelectionModel().select(index - 1);
+            }
+        });
+
+        moveDownMenu.setOnAction(e -> {
+            int index = queueTable.getSelectionModel().getSelectedIndex();
+            if (index >= 0 && index < downloadQueue.size() - 1) {
+                java.util.Collections.swap(downloadQueue, index, index + 1);
+                queueTable.getSelectionModel().select(index + 1);
+            }
+        });
+
+        ContextMenu contextMenu = new ContextMenu(pauseMenu, resumeMenu, cancelMenu, moveUpMenu, moveDownMenu, removeMenu);
+
+        contextMenu.setOnShowing(e -> {
+            DownloadItem selected = queueTable.getSelectionModel().getSelectedItem();
+            if (selected == null) return;
+
+            boolean isActive = (selected.getStatus() == DownloadItem.Status.FETCHING ||
+                    selected.getStatus() == DownloadItem.Status.DOWNLOADING ||
+                    selected.getStatus() == DownloadItem.Status.PROCESSING);
+
+            pauseMenu.setDisable(!isActive);
+            cancelMenu.setDisable(!isActive && selected.getStatus() != DownloadItem.Status.WAITING);
+            resumeMenu.setDisable(selected.getStatus() != DownloadItem.Status.PAUSED &&
+                    selected.getStatus() != DownloadItem.Status.CANCELLED &&
+                    selected.getStatus() != DownloadItem.Status.ERROR);
+        });
+        return contextMenu;
+    }
+
+    private TitledPane buildLogsPane() {
+        outputArea.setEditable(false);
+        outputArea.setWrapText(false);
+        outputArea.setPrefHeight(300);
+        logsPane.setContent(outputArea);
+        logsPane.setExpanded(false);
+        logsPane.setPadding(new Insets(0, 10, 10, 10));
+        return logsPane;
     }
 }
