@@ -6,6 +6,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -50,7 +51,11 @@ public class FetchItApplication extends Application {
     private final TableColumn<DownloadItem, DownloadItem.Status> statusCol = new TableColumn<>();
     private final TableColumn<DownloadItem, Number> progressCol = new TableColumn<>();
 
-    private final Label summaryLabel = new Label("");
+    private final TextArea statsArea = new TextArea();
+    private final TabPane bottomTabs = new TabPane();
+    private final Tab logsTab = new Tab();
+    private final Tab statsTab = new Tab();
+    private final SplitPane splitPane = new SplitPane();
 
     private final TextArea outputArea = new TextArea();
 
@@ -66,7 +71,7 @@ public class FetchItApplication extends Application {
 
     @Override
     public void start(Stage stage) {
-        queueManager = new QueueManager(downloadQueue, ytDlpService, this::appendOutput);
+        queueManager = new QueueManager(downloadQueue, ytDlpService, this::appendOutput, this::appendStats);
 
         try {
             var iconStream = getClass().getResourceAsStream("/icon.png");
@@ -77,15 +82,13 @@ public class FetchItApplication extends Application {
 
         HBox topBar = buildTopBar();
         HBox settingsBar = buildSettingsBar();
+
         TableView<DownloadItem> table = buildQueueTable();
         ContextMenu contextMenu = buildContextMenu();
         table.setContextMenu(contextMenu);
-        TitledPane logs = buildLogsPane();
+        buildBottomPane();
 
-        summaryLabel.setPadding(new Insets(0, 10, 10, 10));
-        summaryLabel.setStyle("-fx-font-family: monospace;");
-
-        VBox root = new VBox(topBar, settingsBar, table, summaryLabel, logs);
+        VBox root = new VBox(topBar, settingsBar, splitPane);
         root.setPadding(new Insets(0));
 
         Scene scene = new Scene(root, 1000, 650);
@@ -171,7 +174,11 @@ public class FetchItApplication extends Application {
 
     private void appendOutput(String text) {
         outputArea.appendText(text);
-        outputArea.setScrollTop(Double.MAX_VALUE);
+    }
+
+    private void appendStats(String text) {
+        statsArea.appendText(text + "\n\n");
+        statsArea.setScrollTop(Double.MAX_VALUE);
     }
 
     private void onSettingsClick() {
@@ -208,6 +215,9 @@ public class FetchItApplication extends Application {
         removeMenu.setText(lang.get("menu.remove"));
         moveUpMenu.setText(lang.get("menu.move_up"));
         moveDownMenu.setText(lang.get("menu.move_down"));
+
+        logsTab.setText(lang.get("tab.logs"));
+        statsTab.setText(lang.get("tab.stats"));
 
         outputDirLabel.setText(lang.get("label.folder") + " " + selectedDir.getName());
         logsPane.setText(lang.get("pane.logs"));
@@ -387,13 +397,25 @@ public class FetchItApplication extends Application {
         return contextMenu;
     }
 
-    private TitledPane buildLogsPane() {
+    private SplitPane buildBottomPane() {
         outputArea.setEditable(false);
         outputArea.setWrapText(false);
-        outputArea.setPrefHeight(300);
-        logsPane.setContent(outputArea);
-        logsPane.setExpanded(false);
-        logsPane.setPadding(new Insets(0, 10, 10, 10));
-        return logsPane;
+        logsTab.setContent(outputArea);
+        logsTab.setClosable(false);
+
+        statsArea.setEditable(false);
+        statsArea.setWrapText(true);
+        statsArea.setStyle("-fx-font-family: monospace;");
+        statsTab.setContent(statsArea);
+        statsTab.setClosable(false);
+
+        bottomTabs.getTabs().addAll(logsTab, statsTab);
+
+        splitPane.setOrientation(Orientation.VERTICAL);
+        splitPane.getItems().addAll(queueTable, bottomTabs);
+        splitPane.setDividerPositions(0.65);
+        VBox.setVgrow(splitPane, Priority.ALWAYS);
+
+        return splitPane;
     }
 }
