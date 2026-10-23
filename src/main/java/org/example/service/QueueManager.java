@@ -103,10 +103,7 @@ public class QueueManager {
                     item.setProgress(100.0);
                 }
 
-                String summary = stats.toSummary();
-                Platform.runLater(() -> {
-                    item.setSummary(stats.toSummary());
-                });
+                Platform.runLater(() -> item.setSummary(stats.toSummary()));
 
                 return null;
             }

@@ -176,11 +176,6 @@ public class FetchItApplication extends Application {
         outputArea.appendText(text);
     }
 
-    private void appendStats(String text) {
-        statsArea.appendText(text + "\n\n");
-        statsArea.setScrollTop(Double.MAX_VALUE);
-    }
-
     private void onSettingsClick() {
         PresetEditorDialog dialog = new PresetEditorDialog(
                 (Stage) settingsButton.getScene().getWindow(),
