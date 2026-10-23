@@ -6,58 +6,34 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.geometry.Insets;
-import javafx.geometry.Orientation;
-import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import org.example.model.*;
-import org.example.service.PresetStorage;
 import org.example.service.QueueManager;
 import org.example.service.YtDlpService;
-import org.example.ui.LanguageManager;
-import org.example.ui.PresetEditorDialog;
+import org.example.ui.*;
 
 import java.io.File;
 import java.util.List;
-import java.util.Locale;
 
 public class FetchItApplication extends Application {
-    private final ComboBox<String> langComboBox = new ComboBox<>();
+    private BottomPanel bottomPanel;
+    private TopBar topBar;
+    private SettingsBar settingsBar;
+
     private final LanguageManager lang = LanguageManager.getInstance();
-    private final TitledPane logsPane = new TitledPane();
     private QueueManager queueManager;
-
-    private final TextField urlField = new TextField();
-    private final TextField proxyField = new TextField();
-    private final Label outputDirLabel = new Label();
-    private final Button chooseDirButton = new Button();
-    private final Button downloadButton = new Button();
-    private final Button updateButton = new Button();
-
-    private final ComboBox<Preset> presetComboBox = new ComboBox<>();
-    private final Button settingsButton = new Button();
-    private final PresetStorage presetStorage = new PresetStorage();
-    private List<Preset> presets;
 
     private final TableView<DownloadItem> queueTable = new TableView<>();
     private final ObservableList<DownloadItem> downloadQueue = FXCollections.observableArrayList();
     private final TableColumn<DownloadItem, String> titleCol = new TableColumn<>();
     private final TableColumn<DownloadItem, DownloadItem.Status> statusCol = new TableColumn<>();
     private final TableColumn<DownloadItem, Number> progressCol = new TableColumn<>();
-
-    private final TextArea statsArea = new TextArea();
-    private final TabPane bottomTabs = new TabPane();
-    private final Tab logsTab = new Tab();
-    private final Tab statsTab = new Tab();
-    private final SplitPane splitPane = new SplitPane();
-
-    private final TextArea outputArea = new TextArea();
 
     private final YtDlpService ytDlpService = new YtDlpService();
     private File selectedDir = new File("test_output");
@@ -71,7 +47,7 @@ public class FetchItApplication extends Application {
 
     @Override
     public void start(Stage stage) {
-        queueManager = new QueueManager(downloadQueue, ytDlpService, this::appendOutput);
+        queueManager = new QueueManager(downloadQueue, ytDlpService, text -> bottomPanel.appendLog(text));
 
         try {
             var iconStream = getClass().getResourceAsStream("/icon.png");
@@ -80,25 +56,32 @@ public class FetchItApplication extends Application {
             System.err.println(lang.get("app.icon") + e.getMessage());
         }
 
-        HBox topBar = buildTopBar();
-        HBox settingsBar = buildSettingsBar();
+        topBar = new TopBar(this::updateTexts);
+        settingsBar = new SettingsBar();
 
-        TableView<DownloadItem> table = buildQueueTable();
+        queueTable.setItems(downloadQueue);
+        buildQueueTable();
+
         ContextMenu contextMenu = buildContextMenu();
-        table.setContextMenu(contextMenu);
-        buildBottomPane();
+        queueTable.setContextMenu(contextMenu);
 
-        VBox root = new VBox(topBar, settingsBar, splitPane);
+        bottomPanel = new BottomPanel(queueTable);
+        queueTable.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+            bottomPanel.bindStatsTo(newSelection);
+        });
+
+        VBox root = new VBox(topBar, settingsBar, bottomPanel);
         root.setPadding(new Insets(0));
 
         Scene scene = new Scene(root, 1000, 650);
         stage.setScene(scene);
         stage.show();
 
-        chooseDirButton.setOnAction(e -> onChooseDirClick(stage));
-        downloadButton.setOnAction(e -> onDownloadClick());
-        updateButton.setOnAction(e -> onUpdateClick());
-        settingsButton.setOnAction(e -> onSettingsClick());
+        topBar.getDownloadButton().setOnAction(e -> onDownloadClick());
+        topBar.getUpdateButton().setOnAction(e -> onUpdateClick());
+        settingsBar.getChooseDirButton().setOnAction(e -> onChooseDirClick(stage));
+        settingsBar.getSettingsButton().setOnAction(e -> onSettingsClick());
+        settingsBar.setOutputDir(selectedDir.getName());
 
         updateTexts();
     }
@@ -112,97 +95,81 @@ public class FetchItApplication extends Application {
         File dir = chooser.showDialog(stage);
         if (dir != null) {
             selectedDir = dir;
-            outputDirLabel.setText(lang.get("label.folder") + " " + dir.getAbsolutePath());
+            settingsBar.setOutputDir(dir.getAbsolutePath());
         }
     }
 
     private void onDownloadClick() {
-        String url = urlField.getText().trim();
+        String url = topBar.getUrlField().getText().trim();
         if (url.isEmpty()) {
-            appendOutput(lang.get("error.empty_url") + "\n");
+            bottomPanel.appendLog(lang.get("error.empty_url") + "\n");
             return;
         }
 
-        Preset selectedPreset = presetComboBox.getValue();
+        Preset selectedPreset = settingsBar.getSelectedPreset();
         if (selectedPreset == null) {
-            appendOutput(lang.get("error.no_preset") + "\n");
+            bottomPanel.appendLog(lang.get("error.empty_url") + "\n");
             return;
         }
 
         DownloadConfig config = new DownloadConfig(
                 url,
                 selectedDir.getAbsolutePath(),
-                proxyField.getText(),
+                settingsBar.getProxyText(),
                 selectedPreset
         );
 
         DownloadItem item = new DownloadItem(url, config);
         downloadQueue.add(item);
-        urlField.clear();
-        appendOutput(lang.get("status.added_to_queue") + "\n");
+        topBar.getUrlField().clear();
+        bottomPanel.appendLog(lang.get("status.added_to_queue") + "\n");
         queueManager.processQueue();
     }
 
     private void onUpdateClick() {
-        downloadButton.setDisable(true);
-        updateButton.setDisable(true);
-        appendOutput("\n" + lang.get("status.checking_updates") + "\n");
+        topBar.getUpdateButton().setDisable(true);
+        topBar.getDownloadButton().setDisable(true);
+        bottomPanel.appendLog("\n" + lang.get("status.checking_updates") + "\n");
 
         Task<Integer> task = new Task<>() {
             @Override
             protected Integer call() {
                 return ytDlpService.update(
-                        line -> Platform.runLater(() -> appendOutput(line + "\n"))
+                        line -> Platform.runLater(() -> bottomPanel.appendLog(line + "\n"))
                 );
             }
         };
 
         task.setOnSucceeded(event -> {
-            appendOutput(lang.get("status.done_code") + task.getValue() + " ===\n");
-            downloadButton.setDisable(false);
-            updateButton.setDisable(false);
+            bottomPanel.appendLog(lang.get("status.done_code") + task.getValue() + " ===\n");
+            topBar.getUpdateButton().setDisable(false);
+            topBar.getDownloadButton().setDisable(false);
         });
 
         task.setOnFailed(event -> {
-            appendOutput(lang.get("status.error_prefix") + task.getException().getMessage() + " ===\n");
-            downloadButton.setDisable(false);
-            updateButton.setDisable(false);
+            bottomPanel.appendLog(lang.get("status.error_prefix") + task.getException().getMessage() + " ===\n");
+            topBar.getUpdateButton().setDisable(false);
+            topBar.getDownloadButton().setDisable(false);
         });
 
         new Thread(task).start();
     }
 
-    private void appendOutput(String text) {
-        outputArea.appendText(text);
-    }
-
     private void onSettingsClick() {
         PresetEditorDialog dialog = new PresetEditorDialog(
-                (Stage) settingsButton.getScene().getWindow(),
-                presetStorage
+                (Stage) settingsBar.getSettingsButton().getScene().getWindow(),
+                settingsBar.getPresetStorage()
         );
         dialog.show();
-
-        presets = dialog.getPresets();
-        presetComboBox.setItems(FXCollections.observableArrayList(presets));
-        if (!presets.isEmpty()) {
-            presetComboBox.getSelectionModel().selectFirst();
-        }
+        settingsBar.loadPresets();
     }
 
     private void updateTexts() {
-        urlField.setPromptText(lang.get("field.url"));
-        proxyField.setPromptText(lang.get("field.proxy"));
         titleCol.setText(lang.get("column.title"));
         statusCol.setText(lang.get("column.status"));
         progressCol.setText(lang.get("column.progress"));
         queueTable.setPlaceholder(new Label(lang.get("status.queue_empty")));
         queueTable.refresh();
-
-        downloadButton.setText(lang.get("button.download"));
-        updateButton.setText(lang.get("button.update"));
-        settingsButton.setText(lang.get("button.settings"));
-        chooseDirButton.setText(lang.get("button.folder"));
 
         pauseMenu.setText(lang.get("menu.pause"));
         resumeMenu.setText(lang.get("menu.resume"));
@@ -211,75 +178,16 @@ public class FetchItApplication extends Application {
         moveUpMenu.setText(lang.get("menu.move_up"));
         moveDownMenu.setText(lang.get("menu.move_down"));
 
-        logsTab.setText(lang.get("tab.logs"));
-        statsTab.setText(lang.get("tab.stats"));
+        bottomPanel.updateTexts();
+        topBar.updateTexts();
+        settingsBar.updateTexts();
 
-        outputDirLabel.setText(lang.get("label.folder") + " " + selectedDir.getName());
-        logsPane.setText(lang.get("pane.logs"));
+        settingsBar.setOutputDir(selectedDir.getName());
 
-        if (downloadButton.getScene() != null) {
-            Stage stage = (Stage) downloadButton.getScene().getWindow();
+        if (topBar.getScene() != null) {
+            Stage stage = (Stage) topBar.getScene().getWindow();
             stage.setTitle(lang.get("app.title"));
         }
-    }
-
-    private HBox buildTopBar() {
-        urlField.setPromptText(lang.get("field.url"));
-        HBox.setHgrow(urlField, Priority.ALWAYS);
-
-        langComboBox.getItems().addAll("RU", "EN");
-        langComboBox.setValue(lang.getCurrentLocale().getLanguage().equals("ru") ? "RU" : "EN");
-        langComboBox.setPrefWidth(70);
-        langComboBox.setOnAction(e -> {
-            String selected = langComboBox.getValue();
-            Locale newLocale = selected.equals("RU") ? Locale.of("ru") : Locale.of("en");
-            lang.setLocale(newLocale);
-            updateTexts();
-        });
-
-        HBox topBar = new HBox(10, urlField, downloadButton, updateButton, langComboBox);
-        topBar.setAlignment(Pos.CENTER);
-        topBar.setPadding(new Insets(10, 10, 5, 10));
-        return topBar;
-    }
-
-    private HBox buildSettingsBar() {
-        proxyField.setPromptText(lang.get("field.proxy"));
-        proxyField.setPrefWidth(300);
-
-        presets = presetStorage.load();
-        ObservableList<Preset> presetItems = FXCollections.observableArrayList(presets);
-        presetComboBox.setItems(presetItems);
-        presetComboBox.setPrefWidth(200);
-
-        presetComboBox.setCellFactory(lv -> new ListCell<>() {
-            @Override
-            protected void updateItem(Preset item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? null : item.getName());
-            }
-        });
-        presetComboBox.setButtonCell(new ListCell<>() {
-            @Override
-            protected void updateItem(Preset item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? null : item.getName());
-            }
-        });
-        if (!presetItems.isEmpty()) {
-            presetComboBox.getSelectionModel().selectFirst();
-        }
-
-        HBox settingsBar = new HBox(10,
-                chooseDirButton, outputDirLabel,
-                new Label("|"),
-                proxyField,
-                new Label("|"),
-                new Label(lang.get("label.preset")), presetComboBox, settingsButton
-        );
-        settingsBar.setAlignment(Pos.CENTER_LEFT);
-        settingsBar.setPadding(new Insets(5, 10, 5, 10));
-        return settingsBar;
     }
 
     private TableView<DownloadItem> buildQueueTable() {
@@ -322,14 +230,6 @@ public class FetchItApplication extends Application {
 
         //noinspection unchecked
         queueTable.getColumns().addAll(titleCol, statusCol, progressCol);
-        queueTable.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
-            if (newSelection != null) {
-                statsArea.textProperty().bind(newSelection.summaryProperty());
-            } else {
-                statsArea.textProperty().unbind();
-                statsArea.clear();
-            }
-        });
         return queueTable;
     }
 
@@ -398,27 +298,5 @@ public class FetchItApplication extends Application {
                     selected.getStatus() != DownloadItem.Status.ERROR);
         });
         return contextMenu;
-    }
-
-    private SplitPane buildBottomPane() {
-        outputArea.setEditable(false);
-        outputArea.setWrapText(false);
-        logsTab.setContent(outputArea);
-        logsTab.setClosable(false);
-
-        statsArea.setEditable(false);
-        statsArea.setWrapText(true);
-        statsArea.setStyle("-fx-font-family: monospace;");
-        statsTab.setContent(statsArea);
-        statsTab.setClosable(false);
-
-        bottomTabs.getTabs().addAll(logsTab, statsTab);
-
-        splitPane.setOrientation(Orientation.VERTICAL);
-        splitPane.getItems().addAll(queueTable, bottomTabs);
-        splitPane.setDividerPositions(0.65);
-        VBox.setVgrow(splitPane, Priority.ALWAYS);
-
-        return splitPane;
     }
 }
