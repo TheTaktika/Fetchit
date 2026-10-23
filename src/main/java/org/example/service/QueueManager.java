@@ -67,7 +67,16 @@ public class QueueManager {
                 if (toDownload.isEmpty()) {
                     item.setStatus(DownloadItem.Status.DONE);
                     item.setProgress(100.0);
-                    Platform.runLater(() -> logCallback.accept(LanguageManager.getInstance().get("status.all_downloaded") + "\n"));
+
+                    DownloadStats emptyStats = new DownloadStats();
+                    emptyStats.setPlaylistTotal(allIds.size());
+                    emptyStats.setAlreadyOnDisk(allIds.size());
+                    emptyStats.setTotalItems(0);
+
+                    Platform.runLater(() -> {
+                        item.setSummary(emptyStats.toSummary());
+                        logCallback.accept(LanguageManager.getInstance().get("status.all_downloaded") + "\n");
+                    });
                     return null;
                 }
 

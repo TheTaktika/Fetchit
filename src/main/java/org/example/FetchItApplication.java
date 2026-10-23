@@ -20,6 +20,7 @@ import org.example.model.*;
 import org.example.service.PresetStorage;
 import org.example.service.QueueManager;
 import org.example.service.YtDlpService;
+import org.example.ui.BottomPanel;
 import org.example.ui.LanguageManager;
 import org.example.ui.PresetEditorDialog;
 
@@ -28,9 +29,10 @@ import java.util.List;
 import java.util.Locale;
 
 public class FetchItApplication extends Application {
+    private BottomPanel bottomPanel;
+
     private final ComboBox<String> langComboBox = new ComboBox<>();
     private final LanguageManager lang = LanguageManager.getInstance();
-    private final TitledPane logsPane = new TitledPane();
     private QueueManager queueManager;
 
     private final TextField urlField = new TextField();
@@ -51,12 +53,6 @@ public class FetchItApplication extends Application {
     private final TableColumn<DownloadItem, DownloadItem.Status> statusCol = new TableColumn<>();
     private final TableColumn<DownloadItem, Number> progressCol = new TableColumn<>();
 
-    private final TextArea statsArea = new TextArea();
-    private final TabPane bottomTabs = new TabPane();
-    private final Tab logsTab = new Tab();
-    private final Tab statsTab = new Tab();
-    private final SplitPane splitPane = new SplitPane();
-
     private final TextArea outputArea = new TextArea();
 
     private final YtDlpService ytDlpService = new YtDlpService();
@@ -71,7 +67,7 @@ public class FetchItApplication extends Application {
 
     @Override
     public void start(Stage stage) {
-        queueManager = new QueueManager(downloadQueue, ytDlpService, this::appendOutput);
+        queueManager = new QueueManager(downloadQueue, ytDlpService, text -> bottomPanel.appendLog(text));
 
         try {
             var iconStream = getClass().getResourceAsStream("/icon.png");
@@ -83,12 +79,15 @@ public class FetchItApplication extends Application {
         HBox topBar = buildTopBar();
         HBox settingsBar = buildSettingsBar();
 
-        TableView<DownloadItem> table = buildQueueTable();
+        queueTable.setItems(downloadQueue);
+        buildQueueTable();
         ContextMenu contextMenu = buildContextMenu();
-        table.setContextMenu(contextMenu);
-        buildBottomPane();
-
-        VBox root = new VBox(topBar, settingsBar, splitPane);
+        queueTable.setContextMenu(contextMenu);
+        bottomPanel = new BottomPanel(queueTable);
+        queueTable.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+            bottomPanel.bindStatsTo(newSelection);
+        });
+        VBox root = new VBox(topBar, settingsBar, bottomPanel);
         root.setPadding(new Insets(0));
 
         Scene scene = new Scene(root, 1000, 650);
@@ -119,13 +118,13 @@ public class FetchItApplication extends Application {
     private void onDownloadClick() {
         String url = urlField.getText().trim();
         if (url.isEmpty()) {
-            appendOutput(lang.get("error.empty_url") + "\n");
+            bottomPanel.appendLog(lang.get("error.empty_url") + "\n");
             return;
         }
 
         Preset selectedPreset = presetComboBox.getValue();
         if (selectedPreset == null) {
-            appendOutput(lang.get("error.no_preset") + "\n");
+            bottomPanel.appendLog(lang.get("error.empty_url") + "\n");
             return;
         }
 
@@ -139,41 +138,37 @@ public class FetchItApplication extends Application {
         DownloadItem item = new DownloadItem(url, config);
         downloadQueue.add(item);
         urlField.clear();
-        appendOutput(lang.get("status.added_to_queue") + "\n");
+        bottomPanel.appendLog(lang.get("status.added_to_queue") + "\n");
         queueManager.processQueue();
     }
 
     private void onUpdateClick() {
         downloadButton.setDisable(true);
         updateButton.setDisable(true);
-        appendOutput("\n" + lang.get("status.checking_updates") + "\n");
+        bottomPanel.appendLog(lang.get("error.empty_url") + "\n");
 
         Task<Integer> task = new Task<>() {
             @Override
             protected Integer call() {
                 return ytDlpService.update(
-                        line -> Platform.runLater(() -> appendOutput(line + "\n"))
+                        line -> Platform.runLater(() -> bottomPanel.appendLog(line + "\n"))
                 );
             }
         };
 
         task.setOnSucceeded(event -> {
-            appendOutput(lang.get("status.done_code") + task.getValue() + " ===\n");
+            bottomPanel.appendLog(lang.get("status.done_code") + task.getValue() + " ===\n");
             downloadButton.setDisable(false);
             updateButton.setDisable(false);
         });
 
         task.setOnFailed(event -> {
-            appendOutput(lang.get("status.error_prefix") + task.getException().getMessage() + " ===\n");
+            bottomPanel.appendLog(lang.get("status.error_prefix") + task.getException().getMessage() + " ===\n");
             downloadButton.setDisable(false);
             updateButton.setDisable(false);
         });
 
         new Thread(task).start();
-    }
-
-    private void appendOutput(String text) {
-        outputArea.appendText(text);
     }
 
     private void onSettingsClick() {
@@ -211,11 +206,9 @@ public class FetchItApplication extends Application {
         moveUpMenu.setText(lang.get("menu.move_up"));
         moveDownMenu.setText(lang.get("menu.move_down"));
 
-        logsTab.setText(lang.get("tab.logs"));
-        statsTab.setText(lang.get("tab.stats"));
+        bottomPanel.updateTexts();
 
         outputDirLabel.setText(lang.get("label.folder") + " " + selectedDir.getName());
-        logsPane.setText(lang.get("pane.logs"));
 
         if (downloadButton.getScene() != null) {
             Stage stage = (Stage) downloadButton.getScene().getWindow();
@@ -322,14 +315,7 @@ public class FetchItApplication extends Application {
 
         //noinspection unchecked
         queueTable.getColumns().addAll(titleCol, statusCol, progressCol);
-        queueTable.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
-            if (newSelection != null) {
-                statsArea.textProperty().bind(newSelection.summaryProperty());
-            } else {
-                statsArea.textProperty().unbind();
-                statsArea.clear();
-            }
-        });
+        queueTable.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {});
         return queueTable;
     }
 
@@ -398,27 +384,5 @@ public class FetchItApplication extends Application {
                     selected.getStatus() != DownloadItem.Status.ERROR);
         });
         return contextMenu;
-    }
-
-    private SplitPane buildBottomPane() {
-        outputArea.setEditable(false);
-        outputArea.setWrapText(false);
-        logsTab.setContent(outputArea);
-        logsTab.setClosable(false);
-
-        statsArea.setEditable(false);
-        statsArea.setWrapText(true);
-        statsArea.setStyle("-fx-font-family: monospace;");
-        statsTab.setContent(statsArea);
-        statsTab.setClosable(false);
-
-        bottomTabs.getTabs().addAll(logsTab, statsTab);
-
-        splitPane.setOrientation(Orientation.VERTICAL);
-        splitPane.getItems().addAll(queueTable, bottomTabs);
-        splitPane.setDividerPositions(0.65);
-        VBox.setVgrow(splitPane, Priority.ALWAYS);
-
-        return splitPane;
     }
 }

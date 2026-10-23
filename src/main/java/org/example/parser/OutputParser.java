@@ -58,7 +58,7 @@ public class OutputParser {
             return -1;
         }
 
-        if (line.contains("[ExtractAudio] Destination:")) {
+        if (line.contains("[ExtractAudio] Destination:") || line.contains("[Merger] Merging formats into")) {
             stats.incrementDownloaded();
             stats.incrementCompleted();
             return -1;
