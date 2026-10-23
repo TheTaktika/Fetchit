@@ -11,11 +11,13 @@ import org.example.ui.LanguageManager;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
 public class YtDlpService {
+    LocalTime time = LocalTime.now();
 
     public int update(Consumer<String> onOutput) {
         try {
@@ -27,10 +29,10 @@ public class YtDlpService {
                         new InputStreamReader(process.getInputStream()))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
-                        onOutput.accept("[OUT] " + line);
+                        onOutput.accept("[OUT] " + time + ": " + line);
                     }
                 } catch (Exception e) {
-                    onOutput.accept("[ERR] " + e.getMessage());
+                    onOutput.accept("[ERR] " + time + ": " + e.getMessage());
                 }
             });
 
@@ -39,10 +41,10 @@ public class YtDlpService {
                         new InputStreamReader(process.getErrorStream()))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
-                        onOutput.accept("[ERR] " + line);
+                        onOutput.accept("[ERR] " + time + ": " + line);
                     }
                 } catch (Exception e) {
-                    onOutput.accept("[ERR] " + e.getMessage());
+                    onOutput.accept("[ERR] " + time + ": " + e.getMessage());
                 }
             });
 
@@ -56,7 +58,7 @@ public class YtDlpService {
             return exitCode;
 
         } catch (Exception e) {
-            onOutput.accept("[FATAL] " + e.getMessage());
+            onOutput.accept("[FATAL] " + time + ": " + e.getMessage());
             return -1;
         }
     }
@@ -136,14 +138,14 @@ public class YtDlpService {
                     }
                 }
 
-                onOutput.accept("[WARN] " + LanguageManager.getInstance().get(error.getMessageKey()));
+                onOutput.accept("[WARN] " + time + ": " + LanguageManager.getInstance().get(error.getMessageKey()));
                 return PlaylistFetchResult.failure(error);
             }
 
             return PlaylistFetchResult.success(ids);
 
         } catch (Exception e) {
-            onOutput.accept("[WARN] " + LanguageManager.getInstance().get("status.error_lists") + e.getMessage());
+            onOutput.accept("[WARN] " + time + ": " + LanguageManager.getInstance().get("status.error_lists") + e.getMessage());
             return PlaylistFetchResult.failure(ErrorType.UNKNOWN);
         }
     }
@@ -178,7 +180,7 @@ public class YtDlpService {
             return stats;
 
         } catch (Exception e) {
-            onOutput.accept("[FATAL] " + LanguageManager.getInstance().get("error.failed_urls") + e.getMessage());
+            onOutput.accept("[FATAL] " + time + ": " + LanguageManager.getInstance().get("error.failed_urls") + e.getMessage());
             return new DownloadStats();
         }
     }
@@ -293,7 +295,7 @@ public class YtDlpService {
             command.add("-o");
             command.add(config.getOutputDir() + "/%(title)s.%(ext)s");
 
-            onOutput.accept("[CMD] " + String.join(" ", command));
+            onOutput.accept("[CMD] " + time + ": " + String.join(" ", command));
 
             ProcessBuilder pb = new ProcessBuilder(command);
             Process process = pb.start();
@@ -304,11 +306,11 @@ public class YtDlpService {
                         new InputStreamReader(process.getInputStream()))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
-                        onOutput.accept("[OUT] " + line);
+                        onOutput.accept("[OUT] " + time + ": " + line);
                         handleParsedLine(parser, line, onProgress);
                     }
                 } catch (Exception e) {
-                    onOutput.accept("[ERR] " + e.getMessage());
+                    onOutput.accept("[ERR] " + time + ": " + e.getMessage());
                 }
             });
 
@@ -317,11 +319,11 @@ public class YtDlpService {
                         new InputStreamReader(process.getErrorStream()))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
-                        onOutput.accept("[ERR] " + line);
+                        onOutput.accept("[ERR] " + time + ": " + line);
                         handleParsedLine(parser, line, onProgress);
                     }
                 } catch (Exception e) {
-                    onOutput.accept("[ERR] " + e.getMessage());
+                    onOutput.accept("[ERR] " + time + ": " + e.getMessage());
                 }
             });
 
@@ -332,7 +334,7 @@ public class YtDlpService {
             stderrThread.join();
 
         } catch (Exception e) {
-            onOutput.accept("[FATAL] " + e.getMessage());
+            onOutput.accept("[FATAL] " + time + ": " + e.getMessage());
         }
 
         return parser.getStats();

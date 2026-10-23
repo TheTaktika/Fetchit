@@ -17,7 +17,8 @@ public class QueueManager {
     private final Consumer<String> logCallback;
     private DownloadItem currentItem = null;
 
-    public QueueManager(ObservableList<DownloadItem> queue, YtDlpService ytDlpService, Consumer<String> logCallback) {
+    public QueueManager(ObservableList<DownloadItem> queue, YtDlpService ytDlpService,
+                        Consumer<String> logCallback) {
         this.queue = queue;
         this.ytDlpService = ytDlpService;
         this.logCallback = logCallback;
@@ -101,6 +102,8 @@ public class QueueManager {
                     item.setStatus(DownloadItem.Status.DONE);
                     item.setProgress(100.0);
                 }
+
+                Platform.runLater(() -> item.setSummary(stats.toSummary()));
 
                 return null;
             }
