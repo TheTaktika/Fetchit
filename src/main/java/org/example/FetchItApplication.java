@@ -71,7 +71,7 @@ public class FetchItApplication extends Application {
 
     @Override
     public void start(Stage stage) {
-        queueManager = new QueueManager(downloadQueue, ytDlpService, this::appendOutput, this::appendStats);
+        queueManager = new QueueManager(downloadQueue, ytDlpService, this::appendOutput);
 
         try {
             var iconStream = getClass().getResourceAsStream("/icon.png");
@@ -327,6 +327,14 @@ public class FetchItApplication extends Application {
 
         //noinspection unchecked
         queueTable.getColumns().addAll(titleCol, statusCol, progressCol);
+        queueTable.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+            if (newSelection != null) {
+                statsArea.textProperty().bind(newSelection.summaryProperty());
+            } else {
+                statsArea.textProperty().unbind();
+                statsArea.clear();
+            }
+        });
         return queueTable;
     }
 

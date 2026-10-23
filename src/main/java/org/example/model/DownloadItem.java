@@ -13,7 +13,7 @@ public class DownloadItem {
     private final ObjectProperty<Status> status = new SimpleObjectProperty<>(Status.WAITING);
     private final DoubleProperty progress = new SimpleDoubleProperty(0.0);
     private final DownloadConfig config;
-
+    private final StringProperty summary = new SimpleStringProperty("");
     private Process currentProcess;
 
     public DownloadItem(String url, DownloadConfig config) {
@@ -34,7 +34,6 @@ public class DownloadItem {
     @SuppressWarnings("unused")
     public String getTitle() { return title.get(); }
     public StringProperty titleProperty() { return title; }
-    @SuppressWarnings("unused")
     public void setTitle(String title) { this.title.set(title); }
 
     public Status getStatus() { return status.get(); }
@@ -45,6 +44,10 @@ public class DownloadItem {
     public double getProgress() { return progress.get(); }
     public DoubleProperty progressProperty() { return progress; }
     public void setProgress(double progress) { this.progress.set(progress); }
+
+    public StringProperty summaryProperty() { return summary; }
+    public String getSummary() { return summary.get(); }
+    public void setSummary(String summary) { this.summary.set(summary); }
 
     public DownloadConfig getConfig() { return config; }
 

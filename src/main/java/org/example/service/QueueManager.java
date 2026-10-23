@@ -16,14 +16,12 @@ public class QueueManager {
     private final YtDlpService ytDlpService;
     private final Consumer<String> logCallback;
     private DownloadItem currentItem = null;
-    private final Consumer<String> statsCallback;
 
     public QueueManager(ObservableList<DownloadItem> queue, YtDlpService ytDlpService,
-                        Consumer<String> logCallback, Consumer<String> statsCallback) {
+                        Consumer<String> logCallback) {
         this.queue = queue;
         this.ytDlpService = ytDlpService;
         this.logCallback = logCallback;
-        this.statsCallback = statsCallback;
     }
 
     public void processQueue() {
@@ -106,7 +104,9 @@ public class QueueManager {
                 }
 
                 String summary = stats.toSummary();
-                Platform.runLater(() -> statsCallback.accept(summary));
+                Platform.runLater(() -> {
+                    item.setSummary(stats.toSummary());
+                });
 
                 return null;
             }
@@ -145,9 +145,5 @@ public class QueueManager {
             item.setStatus(DownloadItem.Status.WAITING);
             processQueue();
         }
-    }
-
-    public Consumer<String> getStatsCallback() {
-        return statsCallback;
     }
 }
