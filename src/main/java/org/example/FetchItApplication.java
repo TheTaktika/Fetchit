@@ -20,9 +20,7 @@ import org.example.model.*;
 import org.example.service.PresetStorage;
 import org.example.service.QueueManager;
 import org.example.service.YtDlpService;
-import org.example.ui.BottomPanel;
-import org.example.ui.LanguageManager;
-import org.example.ui.PresetEditorDialog;
+import org.example.ui.*;
 
 import java.io.File;
 import java.util.List;
@@ -30,6 +28,8 @@ import java.util.Locale;
 
 public class FetchItApplication extends Application {
     private BottomPanel bottomPanel;
+    private TopBar topBar;
+    private SettingsBar settingsBar;
 
     private final ComboBox<String> langComboBox = new ComboBox<>();
     private final LanguageManager lang = LanguageManager.getInstance();
@@ -76,7 +76,7 @@ public class FetchItApplication extends Application {
             System.err.println(lang.get("app.icon") + e.getMessage());
         }
 
-        HBox topBar = buildTopBar();
+        topBar = new TopBar(this::updateTexts);
         HBox settingsBar = buildSettingsBar();
 
         queueTable.setItems(downloadQueue);
@@ -95,8 +95,8 @@ public class FetchItApplication extends Application {
         stage.show();
 
         chooseDirButton.setOnAction(e -> onChooseDirClick(stage));
-        downloadButton.setOnAction(e -> onDownloadClick());
-        updateButton.setOnAction(e -> onUpdateClick());
+        topBar.getDownloadButton().setOnAction(e -> onDownloadClick());
+        topBar.getUpdateButton().setOnAction(e -> onUpdateClick());
         settingsButton.setOnAction(e -> onSettingsClick());
 
         updateTexts();
@@ -116,7 +116,7 @@ public class FetchItApplication extends Application {
     }
 
     private void onDownloadClick() {
-        String url = urlField.getText().trim();
+        String url = topBar.getUrlField().getText().trim();
         if (url.isEmpty()) {
             bottomPanel.appendLog(lang.get("error.empty_url") + "\n");
             return;
@@ -194,8 +194,6 @@ public class FetchItApplication extends Application {
         queueTable.setPlaceholder(new Label(lang.get("status.queue_empty")));
         queueTable.refresh();
 
-        downloadButton.setText(lang.get("button.download"));
-        updateButton.setText(lang.get("button.update"));
         settingsButton.setText(lang.get("button.settings"));
         chooseDirButton.setText(lang.get("button.folder"));
 
@@ -207,6 +205,7 @@ public class FetchItApplication extends Application {
         moveDownMenu.setText(lang.get("menu.move_down"));
 
         bottomPanel.updateTexts();
+        topBar.updateTexts();
 
         outputDirLabel.setText(lang.get("label.folder") + " " + selectedDir.getName());
 
@@ -214,26 +213,6 @@ public class FetchItApplication extends Application {
             Stage stage = (Stage) downloadButton.getScene().getWindow();
             stage.setTitle(lang.get("app.title"));
         }
-    }
-
-    private HBox buildTopBar() {
-        urlField.setPromptText(lang.get("field.url"));
-        HBox.setHgrow(urlField, Priority.ALWAYS);
-
-        langComboBox.getItems().addAll("RU", "EN");
-        langComboBox.setValue(lang.getCurrentLocale().getLanguage().equals("ru") ? "RU" : "EN");
-        langComboBox.setPrefWidth(70);
-        langComboBox.setOnAction(e -> {
-            String selected = langComboBox.getValue();
-            Locale newLocale = selected.equals("RU") ? Locale.of("ru") : Locale.of("en");
-            lang.setLocale(newLocale);
-            updateTexts();
-        });
-
-        HBox topBar = new HBox(10, urlField, downloadButton, updateButton, langComboBox);
-        topBar.setAlignment(Pos.CENTER);
-        topBar.setPadding(new Insets(10, 10, 5, 10));
-        return topBar;
     }
 
     private HBox buildSettingsBar() {
