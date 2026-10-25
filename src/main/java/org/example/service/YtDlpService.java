@@ -1,6 +1,7 @@
 package org.example.service;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -26,7 +27,7 @@ public class YtDlpService {
 
             Thread stdoutThread = new Thread(() -> {
                 try (BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(process.getInputStream()))) {
+                        new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
                         onOutput.accept("[OUT] " + time + ": " + line);
@@ -38,7 +39,7 @@ public class YtDlpService {
 
             Thread stderrThread = new Thread(() -> {
                 try (BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(process.getErrorStream()))) {
+                        new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
                         onOutput.accept("[ERR] " + time + ": " + line);
@@ -103,7 +104,7 @@ public class YtDlpService {
             Process process = pb.start();
 
             try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream()))) {
+                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     String trimmed = line.trim();
@@ -114,7 +115,7 @@ public class YtDlpService {
             }
 
             try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getErrorStream()))) {
+                    new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     stderrBuffer.append(line).append("\n");
@@ -154,7 +155,8 @@ public class YtDlpService {
                                        List<String> videoIds,
                                        Consumer<String> onOutput,
                                        Consumer<ProgressUpdate> onProgress,
-                                       Consumer<Process> onProcessStarted) {
+                                       Consumer<Process> onProcessStarted,
+                                       Consumer<String> onTitleFetched) {
         if (videoIds.isEmpty()) {
             return new DownloadStats();
         }
@@ -173,7 +175,7 @@ public class YtDlpService {
                     config.getPreset()
             );
 
-            DownloadStats stats = downloadFromFile(listConfig, videoIds.size(), onOutput, onProgress, onProcessStarted);
+            DownloadStats stats = downloadFromFile(listConfig, videoIds.size(), onOutput, onProgress, onProcessStarted, onTitleFetched);
             stats.setTotalItems(videoIds.size());
 
             Files.deleteIfExists(tempFile);
@@ -189,7 +191,8 @@ public class YtDlpService {
                                            int expectedTotal,
                                            Consumer<String> onOutput,
                                            Consumer<ProgressUpdate> onProgress,
-                                           Consumer<Process> onProcessStarted) {
+                                           Consumer<Process> onProcessStarted,
+                                           Consumer<String> onTitleFetched) {
         OutputParser parser = new OutputParser(expectedTotal);
         try {
             List<String> command = new ArrayList<>();
@@ -203,6 +206,14 @@ public class YtDlpService {
             Preset preset = config.getPreset();
 
             command.add("--newline");
+            command.add("--no-quiet");
+
+            command.add("--encoding");
+            command.add("utf-8");
+
+            command.add("--print");
+            command.add("before_dl:TITLE:%(title)s");
+
             command.add("-a");
             command.add(config.getUrl());
 
@@ -298,16 +309,22 @@ public class YtDlpService {
             onOutput.accept("[CMD] " + time + ": " + String.join(" ", command));
 
             ProcessBuilder pb = new ProcessBuilder(command);
+            pb.environment().put("PYTHONIOENCODING", "utf-8");
             Process process = pb.start();
             onProcessStarted.accept(process);
 
             Thread stdoutThread = new Thread(() -> {
                 try (BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(process.getInputStream()))) {
+                        new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
-                        onOutput.accept("[OUT] " + time + ": " + line);
-                        handleParsedLine(parser, line, onProgress);
+                        if (line.contains("TITLE:")) {
+                            String title = line.substring(line.indexOf("TITLE:") + 6).trim();
+                            onTitleFetched.accept(title);
+                        } else {
+                            onOutput.accept("[OUT] " + time + ": " + line);
+                            handleParsedLine(parser, line, onProgress);
+                        }
                     }
                 } catch (Exception e) {
                     onOutput.accept("[ERR] " + time + ": " + e.getMessage());
@@ -316,7 +333,7 @@ public class YtDlpService {
 
             Thread stderrThread = new Thread(() -> {
                 try (BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(process.getErrorStream()))) {
+                        new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
                         onOutput.accept("[ERR] " + time + ": " + line);

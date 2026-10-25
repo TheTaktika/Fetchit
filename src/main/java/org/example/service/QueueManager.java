@@ -98,7 +98,8 @@ public class QueueManager {
                                 item.setProgress(Math.min(percent, 99.0));
                             }
                         }),
-                        item::setCurrentProcess
+                        item::setCurrentProcess,
+                        title -> Platform.runLater(() -> item.setTitle(title))
                 );
 
                 if (item.getStatus() == DownloadItem.Status.CANCELLED || item.getStatus() == DownloadItem.Status.PAUSED) {
