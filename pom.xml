@@ -122,7 +122,7 @@
                                 <appContentPath>${project.basedir}/bundle</appContentPath>
                             </appContentPaths>
                             <destination>${project.build.directory}/installer</destination>
-                            <appVersion>1.0.1</appVersion>
+                            <appVersion>1.1.0</appVersion>
                             <winConsole>true</winConsole>
                             <modulePaths>
                                 <modulePath>${javafx.jmods.path}</modulePath>
