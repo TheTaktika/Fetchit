@@ -40,6 +40,8 @@ public class PresetEditorDialog {
     private final TextField sponsorblockRemoveField = new TextField();
     private final CheckBox keepVideoBox = new CheckBox();
     private final CheckBox noOverwritesBox = new CheckBox();
+    private final ComboBox<String> cookiesBox = new ComboBox<>();
+    private final CheckBox splitChaptersBox = new CheckBox();
 
     public PresetEditorDialog(Stage owner, PresetStorage storage) {
         this.storage = storage;
@@ -138,10 +140,27 @@ public class PresetEditorDialog {
         embedThumbnailBox.setText(lang.get("preset.embed_thumbnail"));
         addMetadataBox.setText(lang.get("preset.add_metadata"));
         embedChaptersBox.setText(lang.get("preset.embed_chapters"));
+        splitChaptersBox.setText(lang.get("preset.split_chapters"));
         writeSubsBox.setText(lang.get("preset.write_subs"));
         embedSubsBox.setText(lang.get("preset.embed_subs"));
         keepVideoBox.setText(lang.get("preset.keep_video"));
         noOverwritesBox.setText(lang.get("preset.no_overwrites"));
+        cookiesBox.setItems(FXCollections.observableArrayList("none", "chrome", "firefox", "edge", "opera", "brave"));
+        cookiesBox.getSelectionModel().selectFirst();
+        cookiesBox.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else if ("none".equals(item)) {
+                    setText(lang.get("preset.cookies_none"));
+                } else {
+                    setText(item);
+                }
+            }
+        });
+        cookiesBox.setButtonCell(cookiesBox.getCellFactory().call(null));
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
@@ -174,7 +193,9 @@ public class PresetEditorDialog {
         grid.add(new Label(lang.get("preset.sponsorblock")), 0, row); grid.add(sponsorblockRemoveField, 1, row++);
         sponsorblockRemoveField.setPromptText(lang.get("preset.prompt_sponsorblock"));
         grid.add(keepVideoBox, 0, row++, 2, 1);
-        grid.add(noOverwritesBox, 0, row, 2, 1);
+        grid.add(noOverwritesBox, 0, row++, 2, 1);
+        grid.add(new Label(lang.get("preset.cookies")), 0, row); grid.add(cookiesBox, 1, row++);
+        grid.add(splitChaptersBox, 0, row++, 2, 1);
 
         ScrollPane scroll = new ScrollPane(grid);
         scroll.setFitToWidth(true);
@@ -204,6 +225,8 @@ public class PresetEditorDialog {
         sponsorblockRemoveField.setText(p.getSponsorblockRemove() == null ? "" : p.getSponsorblockRemove());
         keepVideoBox.setSelected(p.isKeepVideo());
         noOverwritesBox.setSelected(p.isNoOverwrites());
+        cookiesBox.setValue(p.getCookiesFromBrowser() == null ? "none" : p.getCookiesFromBrowser());
+        splitChaptersBox.setSelected(p.isSplitChapters());
     }
 
     private void applyForm(Preset p) {
@@ -225,6 +248,9 @@ public class PresetEditorDialog {
         p.setSponsorblockRemove(emptyToNull(sponsorblockRemoveField.getText()));
         p.setKeepVideo(keepVideoBox.isSelected());
         p.setNoOverwrites(noOverwritesBox.isSelected());
+        String selectedCookies = cookiesBox.getValue();
+        p.setCookiesFromBrowser("none".equals(selectedCookies) ? null : selectedCookies);
+        p.setSplitChapters(splitChaptersBox.isSelected());
     }
 
     private String emptyToNull(String s) {

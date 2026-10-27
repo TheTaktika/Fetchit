@@ -88,17 +88,38 @@ public class YtDlpService {
         return toolName;
     }
 
-    public PlaylistFetchResult getPlaylistVideoIds(String url, Consumer<String> onOutput) {
+    public PlaylistFetchResult getPlaylistVideoIds(DownloadConfig config, Consumer<String> onOutput) {
         List<String> ids = new ArrayList<>();
         StringBuilder stderrBuffer = new StringBuilder();
+        String playlistTitle = null;
+        String playlistThumbnail = null;
 
         try {
             List<String> command = new ArrayList<>();
             command.add(resolveBundledTool("yt-dlp.exe"));
+
+            if (config.hasProxy()) {
+                command.add("--proxy");
+                command.add(config.proxy());
+            }
+
+            Preset preset = config.preset();
+            if (preset.getCookiesFromBrowser() != null && !preset.getCookiesFromBrowser().isBlank()) {
+                command.add("--cookies-from-browser");
+                command.add(preset.getCookiesFromBrowser());
+            }
+
             command.add("--flat-playlist");
             command.add("--print");
             command.add("%(id)s");
-            command.add(url);
+            command.add("--print");
+            command.add("TITLE:%(playlist_title,title)s");
+            command.add("--print");
+            command.add("PLAYLIST_THUMB:%(playlist_thumbnail)s");
+            command.add("--print");
+            command.add("FIRST_VIDEO_THUMB:%(thumbnail)s");
+
+            command.add(config.url());
 
             ProcessBuilder pb = new ProcessBuilder(command);
             Process process = pb.start();
@@ -108,7 +129,23 @@ public class YtDlpService {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     String trimmed = line.trim();
-                    if (!trimmed.isEmpty()) {
+                    if (trimmed.isEmpty()) continue;
+
+                    if (trimmed.startsWith("TITLE:")) {
+                        if (playlistTitle == null || "NA".equals(playlistTitle)) {
+                            playlistTitle = trimmed.substring("TITLE:".length()).trim();
+                        }
+                    } else if (trimmed.startsWith("PLAYLIST_THUMB:")) {
+                        String thumb = trimmed.substring("PLAYLIST_THUMB:".length()).trim();
+                        if (!"NA".equals(thumb) && !thumb.isBlank()) {
+                            playlistThumbnail = thumb;
+                        }
+                    } else if (trimmed.startsWith("FIRST_VIDEO_THUMB:")) {
+                        String thumb = trimmed.substring("FIRST_VIDEO_THUMB:".length()).trim();
+                        if (playlistThumbnail == null && !"NA".equals(thumb) && !thumb.isBlank()) {
+                            playlistThumbnail = thumb;
+                        }
+                    } else {
                         ids.add(trimmed);
                     }
                 }
@@ -124,13 +161,18 @@ public class YtDlpService {
 
             process.waitFor();
 
+            if ((playlistThumbnail == null || "NA".equals(playlistThumbnail) || playlistThumbnail.isBlank()) && !ids.isEmpty()) {
+                String firstId = ids.get(0);
+                playlistThumbnail = "https://i.ytimg.com/vi/" + firstId + "/maxresdefault.jpg";
+            }
+
             if (ids.isEmpty()) {
                 String stderr = stderrBuffer.toString();
                 ErrorClassifier classifier = new ErrorClassifier();
                 ErrorType error = ErrorType.UNKNOWN;
 
                 for (String line : stderr.split("\n")) {
-                    if (line.contains("ERROR:")) {
+                    if (line.contains("ERROR:") || line.contains("Sign in to confirm")) {
                         ErrorType detected = classifier.classify(line);
                         if (detected != ErrorType.UNKNOWN) {
                             error = detected;
@@ -139,11 +181,13 @@ public class YtDlpService {
                     }
                 }
 
-                onOutput.accept("[WARN] " + time + ": " + LanguageManager.getInstance().get(error.getMessageKey()));
+                if (error != ErrorType.UNKNOWN) {
+                    onOutput.accept("[WARN] " + time + ": " + LanguageManager.getInstance().get(error.getMessageKey()));
+                }
                 return PlaylistFetchResult.failure(error);
             }
 
-            return PlaylistFetchResult.success(ids);
+            return PlaylistFetchResult.success(ids, playlistTitle, playlistThumbnail);
 
         } catch (Exception e) {
             onOutput.accept("[WARN] " + time + ": " + LanguageManager.getInstance().get("status.error_lists") + e.getMessage());
@@ -151,12 +195,7 @@ public class YtDlpService {
         }
     }
 
-    public DownloadStats downloadByIds(DownloadConfig config,
-                                       List<String> videoIds,
-                                       Consumer<String> onOutput,
-                                       Consumer<ProgressUpdate> onProgress,
-                                       Consumer<Process> onProcessStarted,
-                                       Consumer<String> onTitleFetched) {
+    public DownloadStats downloadByIds(DownloadConfig config, List<String> videoIds, DownloadCallbacks callbacks) {
         if (videoIds.isEmpty()) {
             return new DownloadStats();
         }
@@ -170,29 +209,24 @@ public class YtDlpService {
 
             DownloadConfig listConfig = new DownloadConfig(
                     tempFile.toAbsolutePath().toString(),
-                    config.getOutputDir(),
-                    config.getProxy(),
-                    config.getPreset()
+                    config.outputDir(),
+                    config.proxy(),
+                    config.preset()
             );
 
-            DownloadStats stats = downloadFromFile(listConfig, videoIds.size(), onOutput, onProgress, onProcessStarted, onTitleFetched);
+            DownloadStats stats = downloadFromFile(listConfig, videoIds.size(), callbacks);
             stats.setTotalItems(videoIds.size());
 
             Files.deleteIfExists(tempFile);
             return stats;
 
         } catch (Exception e) {
-            onOutput.accept("[FATAL] " + time + ": " + LanguageManager.getInstance().get("error.failed_urls") + e.getMessage());
+            callbacks.onLog("[FATAL] " + time + ": " + LanguageManager.getInstance().get("error.failed_urls") + e.getMessage());
             return new DownloadStats();
         }
     }
 
-    private DownloadStats downloadFromFile(DownloadConfig config,
-                                           int expectedTotal,
-                                           Consumer<String> onOutput,
-                                           Consumer<ProgressUpdate> onProgress,
-                                           Consumer<Process> onProcessStarted,
-                                           Consumer<String> onTitleFetched) {
+    private DownloadStats downloadFromFile(DownloadConfig config, int expectedTotal, DownloadCallbacks callbacks) {
         OutputParser parser = new OutputParser(expectedTotal);
         try {
             List<String> command = new ArrayList<>();
@@ -200,10 +234,10 @@ public class YtDlpService {
 
             if (config.hasProxy()) {
                 command.add("--proxy");
-                command.add(config.getProxy());
+                command.add(config.proxy());
             }
 
-            Preset preset = config.getPreset();
+            Preset preset = config.preset();
 
             command.add("--newline");
             command.add("--no-quiet");
@@ -214,8 +248,11 @@ public class YtDlpService {
             command.add("--print");
             command.add("before_dl:TITLE:%(title)s");
 
+            command.add("--print");
+            command.add("before_dl:THUMB:%(thumbnail)s");
+
             command.add("-a");
-            command.add(config.getUrl());
+            command.add(config.url());
 
             if (preset.isAudio()) {
                 command.add("-x");
@@ -245,15 +282,9 @@ public class YtDlpService {
                 }
             }
 
-            if (preset.isEmbedThumbnail()) {
-                command.add("--embed-thumbnail");
-            }
-            if (preset.isAddMetadata()) {
-                command.add("--add-metadata");
-            }
-            if (preset.isEmbedChapters()) {
-                command.add("--embed-chapters");
-            }
+            if (preset.isEmbedThumbnail()) command.add("--embed-thumbnail");
+            if (preset.isAddMetadata()) command.add("--add-metadata");
+            if (preset.isEmbedChapters()) command.add("--embed-chapters");
 
             if (preset.isWriteSubtitles()) {
                 command.add("--write-subs");
@@ -291,9 +322,7 @@ public class YtDlpService {
                 command.add(String.valueOf(preset.getRetries()));
             }
 
-            if (preset.isNoOverwrites()) {
-                command.add("--no-overwrites");
-            }
+            if (preset.isNoOverwrites()) command.add("--no-overwrites");
 
             String ffmpegLocation = resolveFfmpegLocation();
             if (ffmpegLocation != null) {
@@ -303,15 +332,37 @@ public class YtDlpService {
             command.add("--parse-metadata");
             command.add("%(id)s:%(meta_comment)s");
 
-            command.add("-o");
-            command.add(config.getOutputDir() + "/%(title)s.%(ext)s");
+            File tempDir = new File(System.getProperty("java.io.tmpdir"), "FetchIt_temp");
+            File outputDir = new File(config.outputDir());
 
-            onOutput.accept("[CMD] " + time + ": " + String.join(" ", command));
+            if (!tempDir.exists()) tempDir.mkdirs();
+            if (!outputDir.exists()) outputDir.mkdirs();
+
+            command.add("-P");
+            command.add("temp:" + tempDir.getAbsolutePath());
+            command.add("-P");
+            command.add("home:" + outputDir.getAbsolutePath());
+
+            if (preset.isSplitChapters()) {
+                command.add("--split-chapters");
+
+                command.add("-o");
+                command.add("%(title)s.%(ext)s");
+
+                command.add("-o");
+                command.add("chapter:%(section_title)s.%(ext)s");
+            } else {
+                command.add("-o");
+                command.add("%(title)s.%(ext)s");
+            }
+
+            callbacks.onLog("[CMD] " + time + ": " + String.join(" ", command));
 
             ProcessBuilder pb = new ProcessBuilder(command);
             pb.environment().put("PYTHONIOENCODING", "utf-8");
             Process process = pb.start();
-            onProcessStarted.accept(process);
+
+            callbacks.onProcessStarted(process);
 
             Thread stdoutThread = new Thread(() -> {
                 try (BufferedReader reader = new BufferedReader(
@@ -320,14 +371,20 @@ public class YtDlpService {
                     while ((line = reader.readLine()) != null) {
                         if (line.contains("TITLE:")) {
                             String title = line.substring(line.indexOf("TITLE:") + 6).trim();
-                            onTitleFetched.accept(title);
+                            callbacks.onTitleFetched(title);
+                        } else if (line.contains("THUMB:")) {
+                            String thumb = line.substring(line.indexOf("THUMB:") + 6).trim();
+                            if (!thumb.equals("NA") && !thumb.isEmpty()) {
+                                callbacks.onThumbnailFetched(thumb);
+                            }
                         } else {
-                            onOutput.accept("[OUT] " + time + ": " + line);
-                            handleParsedLine(parser, line, onProgress);
+                            callbacks.onLog("[OUT] " + time + ": " + line);
+                            handleParsedLine(parser, line, callbacks::onProgress);
                         }
                     }
+
                 } catch (Exception e) {
-                    onOutput.accept("[ERR] " + time + ": " + e.getMessage());
+                    callbacks.onLog("[ERR] " + time + ": " + e.getMessage());
                 }
             });
 
@@ -336,11 +393,11 @@ public class YtDlpService {
                         new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
-                        onOutput.accept("[ERR] " + time + ": " + line);
-                        handleParsedLine(parser, line, onProgress);
+                        callbacks.onLog("[ERR] " + time + ": " + line);
+                        handleParsedLine(parser, line, callbacks::onProgress);
                     }
                 } catch (Exception e) {
-                    onOutput.accept("[ERR] " + time + ": " + e.getMessage());
+                    callbacks.onLog("[ERR] " + time + ": " + e.getMessage());
                 }
             });
 
@@ -351,7 +408,7 @@ public class YtDlpService {
             stderrThread.join();
 
         } catch (Exception e) {
-            onOutput.accept("[FATAL] " + time + ": " + e.getMessage());
+            callbacks.onLog("[FATAL] " + time + ": " + e.getMessage());
         }
 
         return parser.getStats();

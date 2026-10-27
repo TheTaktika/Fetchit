@@ -51,7 +51,8 @@ logs/
 *.bak
 
 ### Media ###
-test_output/
+fetchit_temp/
+downloads/
 archive.txt
 download_log.txt
 urls_to_download.txt

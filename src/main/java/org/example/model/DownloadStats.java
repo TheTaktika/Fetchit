@@ -84,36 +84,4 @@ public class DownloadStats {
     public int getCompletedItems() {
         return completedItems;
     }
-
-    public String toSummary() {
-        StringBuilder sb = new StringBuilder();
-        if (getPlaylistTotal() > 0) {
-            sb.append(LanguageManager.getInstance().get("status.playlist_total")).append(" ").append(getPlaylistTotal()).append("\n");
-        }
-        if (getAlreadyOnDisk() > 0) {
-            sb.append(LanguageManager.getInstance().get("status.already_on_disk")).append(" ").append(alreadyOnDisk).append("\n");
-        }
-        sb.append(LanguageManager.getInstance().get("status.to_download")).append(" ").append(downloadedCount + skippedCount + errorsCount).append("\n");
-        sb.append(LanguageManager.getInstance().get("status.downloaded")).append(" ").append(downloadedCount).append("\n");
-        if (skippedCount > 0) {
-            sb.append(LanguageManager.getInstance().get("status.skipped")).append(" ").append(skippedCount).append("\n");
-        }
-        sb.append(LanguageManager.getInstance().get("status.errors")).append(" ").append(errorsCount).append("\n");
-
-        if (!classifiedErrors.isEmpty()) {
-            sb.append("\n").append(LanguageManager.getInstance().get("status.error_details")).append("\n");
-            for (Map.Entry<ErrorType, List<String>> entry : classifiedErrors.entrySet()) {
-                ErrorType type = entry.getKey();
-                int count = entry.getValue().size();
-                String errorText = LanguageManager.getInstance().get(type.getMessageKey());
-
-                sb.append("  • ").append(errorText);
-                if (count > 1) {
-                    sb.append(" (x").append(count).append(")");
-                }
-                sb.append("\n");
-            }
-        }
-        return sb.toString();
-    }
 }
