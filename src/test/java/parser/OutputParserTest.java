@@ -52,7 +52,7 @@ class OutputParserTest {
 
     @Test
     void parseAlreadyDownloadedLine_incrementsSkippedAndCompleted() {
-        parser.parseLine("test_output/song.mp3 has already been downloaded");
+        parser.parseLine("downloads/song.mp3 has already been downloaded");
         DownloadStats stats = parser.getStats();
         assertEquals(1, stats.getSkippedCount());
         assertEquals(1, stats.getCompletedItems());
@@ -60,7 +60,7 @@ class OutputParserTest {
 
     @Test
     void parseExtractAudioLine_incrementsDownloadedAndCompleted() {
-        parser.parseLine("[ExtractAudio] Destination: test_output/song.mp3");
+        parser.parseLine("[ExtractAudio] Destination: downloads/song.mp3");
         DownloadStats stats = parser.getStats();
         assertEquals(1, stats.getDownloadedCount());
         assertEquals(1, stats.getCompletedItems());

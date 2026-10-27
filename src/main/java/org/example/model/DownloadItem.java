@@ -14,17 +14,13 @@ public class DownloadItem {
     private final DoubleProperty progress = new SimpleDoubleProperty(0.0);
     private final DownloadConfig config;
     private final StringProperty summary = new SimpleStringProperty("");
-    private Process currentProcess;
+    private final ObjectProperty<javafx.scene.image.Image> thumbnail = new SimpleObjectProperty<>();
 
     public DownloadItem(String url, DownloadConfig config) {
         this.url.set(url);
         this.config = config;
         this.title.set(url);
     }
-
-    @SuppressWarnings("unused")
-    public Process getCurrentProcess() { return currentProcess; }
-    public void setCurrentProcess(Process process) { this.currentProcess = process; }
 
     @SuppressWarnings("unused")
     public String getUrl() { return url.get(); }
@@ -49,22 +45,17 @@ public class DownloadItem {
     public String getSummary() { return summary.get(); }
     public void setSummary(String summary) { this.summary.set(summary); }
 
+    public javafx.scene.image.Image getThumbnail() { return thumbnail.get(); }
+    public ObjectProperty<javafx.scene.image.Image> thumbnailProperty() { return thumbnail; }
+    public void setThumbnail(javafx.scene.image.Image thumbnail) { this.thumbnail.set(thumbnail); }
+
     public DownloadConfig getConfig() { return config; }
 
     public void cancel() {
         setStatus(Status.CANCELLED);
-        killProcess();
     }
 
     public void pause() {
         setStatus(Status.PAUSED);
-        killProcess();
-    }
-
-    private void killProcess() {
-        if (currentProcess != null && currentProcess.isAlive()) {
-            currentProcess.descendants().forEach(ProcessHandle::destroyForcibly);
-            currentProcess.destroyForcibly();
-        }
     }
 }

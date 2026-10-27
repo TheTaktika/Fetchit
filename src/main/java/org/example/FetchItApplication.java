@@ -19,31 +19,21 @@ import org.example.service.YtDlpService;
 import org.example.ui.*;
 
 import java.io.File;
-import java.util.List;
 
 public class FetchItApplication extends Application {
     private BottomPanel bottomPanel;
     private TopBar topBar;
     private SettingsBar settingsBar;
+    private final QueueTable queueTable = new QueueTable();
+    private QueueContextMenu contextMenu;
 
     private final LanguageManager lang = LanguageManager.getInstance();
     private QueueManager queueManager;
 
-    private final TableView<DownloadItem> queueTable = new TableView<>();
     private final ObservableList<DownloadItem> downloadQueue = FXCollections.observableArrayList();
-    private final TableColumn<DownloadItem, String> titleCol = new TableColumn<>();
-    private final TableColumn<DownloadItem, DownloadItem.Status> statusCol = new TableColumn<>();
-    private final TableColumn<DownloadItem, Number> progressCol = new TableColumn<>();
 
     private final YtDlpService ytDlpService = new YtDlpService();
-    private File selectedDir = new File("test_output");
-
-    private final MenuItem cancelMenu = new MenuItem();
-    private final MenuItem removeMenu = new MenuItem();
-    private final MenuItem pauseMenu = new MenuItem();
-    private final MenuItem resumeMenu = new MenuItem();
-    private final MenuItem moveUpMenu = new MenuItem();
-    private final MenuItem moveDownMenu = new MenuItem();
+    private File selectedDir = new File("downloads");
 
     @Override
     public void start(Stage stage) {
@@ -56,13 +46,18 @@ public class FetchItApplication extends Application {
             System.err.println(lang.get("app.icon") + e.getMessage());
         }
 
+        if (!selectedDir.exists()) {
+            selectedDir.mkdirs();
+        }
+
         topBar = new TopBar(this::updateTexts);
         settingsBar = new SettingsBar();
 
         queueTable.setItems(downloadQueue);
-        buildQueueTable();
+        VBox.setVgrow(queueTable, Priority.ALWAYS);
+        queueTable.updateTexts();
 
-        ContextMenu contextMenu = buildContextMenu();
+        contextMenu = new QueueContextMenu(queueTable, downloadQueue, queueManager);
         queueTable.setContextMenu(contextMenu);
 
         bottomPanel = new BottomPanel(queueTable);
@@ -106,9 +101,18 @@ public class FetchItApplication extends Application {
             return;
         }
 
+        boolean isDuplicate = downloadQueue.stream()
+                .anyMatch(i -> i.getConfig().url().equals(url) &&
+                        i.getStatus() != DownloadItem.Status.ERROR &&
+                        i.getStatus() != DownloadItem.Status.CANCELLED);
+        if (isDuplicate) {
+            bottomPanel.appendLog(lang.get("error.duplicate_in_queue") + "\n");
+            return;
+        }
+
         Preset selectedPreset = settingsBar.getSelectedPreset();
         if (selectedPreset == null) {
-            bottomPanel.appendLog(lang.get("error.empty_url") + "\n");
+            bottomPanel.appendLog(lang.get("error.no_preset") + "\n");
             return;
         }
 
@@ -165,22 +169,11 @@ public class FetchItApplication extends Application {
     }
 
     private void updateTexts() {
-        titleCol.setText(lang.get("column.title"));
-        statusCol.setText(lang.get("column.status"));
-        progressCol.setText(lang.get("column.progress"));
-        queueTable.setPlaceholder(new Label(lang.get("status.queue_empty")));
-        queueTable.refresh();
-
-        pauseMenu.setText(lang.get("menu.pause"));
-        resumeMenu.setText(lang.get("menu.resume"));
-        cancelMenu.setText(lang.get("menu.cancel"));
-        removeMenu.setText(lang.get("menu.remove"));
-        moveUpMenu.setText(lang.get("menu.move_up"));
-        moveDownMenu.setText(lang.get("menu.move_down"));
-
         bottomPanel.updateTexts();
         topBar.updateTexts();
         settingsBar.updateTexts();
+        queueTable.updateTexts();
+        contextMenu.updateTexts();
 
         settingsBar.setOutputDir(selectedDir.getName());
 
@@ -188,115 +181,5 @@ public class FetchItApplication extends Application {
             Stage stage = (Stage) topBar.getScene().getWindow();
             stage.setTitle(lang.get("app.title"));
         }
-    }
-
-    private TableView<DownloadItem> buildQueueTable() {
-        queueTable.setItems(downloadQueue);
-        VBox.setVgrow(queueTable, Priority.ALWAYS);
-
-        titleCol.setCellValueFactory(cell -> cell.getValue().titleProperty());
-        titleCol.setPrefWidth(300);
-
-        statusCol.setCellValueFactory(cell -> cell.getValue().statusProperty());
-        statusCol.setPrefWidth(150);
-        statusCol.setCellFactory(column -> new TableCell<>() {
-            @Override
-            protected void updateItem(DownloadItem.Status item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText(null);
-                } else {
-                    setText(lang.get("status." + item.name().toLowerCase()));
-                }
-            }
-        });
-
-        progressCol.setCellValueFactory(cell -> cell.getValue().progressProperty());
-        progressCol.setPrefWidth(200);
-        progressCol.setCellFactory(column -> new TableCell<>() {
-            private final ProgressBar progressBar = new ProgressBar(0);
-
-            @Override
-            protected void updateItem(Number item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setGraphic(null);
-                } else {
-                    progressBar.setProgress(item.doubleValue() / 100.0);
-                    setGraphic(progressBar);
-                }
-            }
-        });
-
-        //noinspection unchecked
-        queueTable.getColumns().addAll(titleCol, statusCol, progressCol);
-        return queueTable;
-    }
-
-    @SuppressWarnings("ExtractMethodRecommender")
-    private ContextMenu buildContextMenu() {
-        cancelMenu.setOnAction(e -> {
-            DownloadItem selected = queueTable.getSelectionModel().getSelectedItem();
-            if (selected != null) {
-                selected.cancel();
-                queueTable.refresh();
-            }
-        });
-
-        removeMenu.setOnAction(e -> {
-            DownloadItem selected = queueTable.getSelectionModel().getSelectedItem();
-            if (selected != null) {
-                if (selected.getStatus() != DownloadItem.Status.DONE &&
-                        selected.getStatus() != DownloadItem.Status.ERROR &&
-                        selected.getStatus() != DownloadItem.Status.CANCELLED) {
-                    selected.cancel();
-                }
-                downloadQueue.remove(selected);
-            }
-        });
-
-        pauseMenu.setOnAction(e -> {
-            DownloadItem selected = queueTable.getSelectionModel().getSelectedItem();
-            if (selected != null) queueManager.pauseItem(selected);
-        });
-
-        resumeMenu.setOnAction(e -> {
-            DownloadItem selected = queueTable.getSelectionModel().getSelectedItem();
-            if (selected != null) queueManager.resumeItem(selected);
-        });
-
-        moveUpMenu.setOnAction(e -> {
-            int index = queueTable.getSelectionModel().getSelectedIndex();
-            if (index > 0) {
-                java.util.Collections.swap(downloadQueue, index, index - 1);
-                queueTable.getSelectionModel().select(index - 1);
-            }
-        });
-
-        moveDownMenu.setOnAction(e -> {
-            int index = queueTable.getSelectionModel().getSelectedIndex();
-            if (index >= 0 && index < downloadQueue.size() - 1) {
-                java.util.Collections.swap(downloadQueue, index, index + 1);
-                queueTable.getSelectionModel().select(index + 1);
-            }
-        });
-
-        ContextMenu contextMenu = new ContextMenu(pauseMenu, resumeMenu, cancelMenu, moveUpMenu, moveDownMenu, removeMenu);
-
-        contextMenu.setOnShowing(e -> {
-            DownloadItem selected = queueTable.getSelectionModel().getSelectedItem();
-            if (selected == null) return;
-
-            boolean isActive = (selected.getStatus() == DownloadItem.Status.FETCHING ||
-                    selected.getStatus() == DownloadItem.Status.DOWNLOADING ||
-                    selected.getStatus() == DownloadItem.Status.PROCESSING);
-
-            pauseMenu.setDisable(!isActive);
-            cancelMenu.setDisable(!isActive && selected.getStatus() != DownloadItem.Status.WAITING);
-            resumeMenu.setDisable(selected.getStatus() != DownloadItem.Status.PAUSED &&
-                    selected.getStatus() != DownloadItem.Status.CANCELLED &&
-                    selected.getStatus() != DownloadItem.Status.ERROR);
-        });
-        return contextMenu;
     }
 }

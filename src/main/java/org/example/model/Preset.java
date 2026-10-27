@@ -31,6 +31,8 @@ public class Preset {
 
     private boolean keepVideo;
     private boolean noOverwrites;
+    private String cookiesFromBrowser;
+    private boolean splitChapters;
 
     public Preset() {
     }
@@ -234,4 +236,10 @@ public class Preset {
     public void setNoOverwrites(boolean noOverwrites) {
         this.noOverwrites = noOverwrites;
     }
+
+    public String getCookiesFromBrowser() { return cookiesFromBrowser; }
+    public void setCookiesFromBrowser(String cookiesFromBrowser) { this.cookiesFromBrowser = cookiesFromBrowser; }
+
+    public boolean isSplitChapters() { return splitChapters; }
+    public void setSplitChapters(boolean splitChapters) { this.splitChapters = splitChapters; }
 }

@@ -37,10 +37,15 @@ public class BottomPanel extends SplitPane {
     }
 
     public void appendLog(String text) {
-        logsArea.appendText(text);
+        if (!text.endsWith("\n")) {
+            logsArea.appendText(text + "\n");
+        } else {
+            logsArea.appendText(text);
+        }
     }
 
     public void bindStatsTo(DownloadItem item) {
+        statsArea.textProperty().unbind();
         if (item != null) {
             statsArea.textProperty().bind(item.summaryProperty());
         } else {
@@ -48,6 +53,7 @@ public class BottomPanel extends SplitPane {
             statsArea.clear();
         }
     }
+
 
     public void updateTexts() {
         logsTab.setText(lang.get("tab.logs"));
