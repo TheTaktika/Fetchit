@@ -5,6 +5,7 @@ import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TableView;
 import org.example.model.DownloadItem;
+import org.example.model.DownloadStatus;
 import org.example.service.QueueManager;
 
 import java.util.Collections;
@@ -35,9 +36,9 @@ public class QueueContextMenu extends ContextMenu {
         removeMenu.setOnAction(e -> {
             DownloadItem selected = table.getSelectionModel().getSelectedItem();
             if (selected != null) {
-                if (selected.getStatus() != DownloadItem.Status.DONE &&
-                        selected.getStatus() != DownloadItem.Status.ERROR &&
-                        selected.getStatus() != DownloadItem.Status.CANCELLED) {
+                if (selected.getStatus() != DownloadStatus.DONE &&
+                        selected.getStatus() != DownloadStatus.ERROR &&
+                        selected.getStatus() != DownloadStatus.CANCELLED) {
                     queueManager.cancelItem(selected);
                 }
                 queue.remove(selected);
@@ -74,20 +75,14 @@ public class QueueContextMenu extends ContextMenu {
             }
         });
 
-        setOnShowing(e -> {
-            DownloadItem selected = table.getSelectionModel().getSelectedItem();
-            if (selected == null) return;
+        setOnShowing(e -> updateMenuState(table.getSelectionModel().getSelectedItem()));
+    }
 
-            boolean isActive = (selected.getStatus() == DownloadItem.Status.FETCHING ||
-                    selected.getStatus() == DownloadItem.Status.DOWNLOADING ||
-                    selected.getStatus() == DownloadItem.Status.PROCESSING);
-
-            pauseMenu.setDisable(!isActive);
-            cancelMenu.setDisable(!isActive && selected.getStatus() != DownloadItem.Status.WAITING);
-            resumeMenu.setDisable(selected.getStatus() != DownloadItem.Status.PAUSED &&
-                    selected.getStatus() != DownloadItem.Status.CANCELLED &&
-                    selected.getStatus() != DownloadItem.Status.ERROR);
-        });
+    private void updateMenuState(DownloadItem selected) {
+        if (selected == null) return;
+        pauseMenu.setDisable(!selected.canPause());
+        cancelMenu.setDisable(!selected.canCancel());
+        resumeMenu.setDisable(!selected.canResume());
     }
 
     public void updateTexts() {

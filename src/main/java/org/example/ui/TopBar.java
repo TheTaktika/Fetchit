@@ -7,6 +7,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+
 import java.util.Locale;
 
 public class TopBar extends HBox {
@@ -45,7 +46,25 @@ public class TopBar extends HBox {
         updateButton.setText(lang.get("button.update"));
     }
 
-    public TextField getUrlField() { return urlField; }
-    public Button getDownloadButton() { return downloadButton; }
-    public Button getUpdateButton() { return updateButton; }
+    public String getUrl() {
+        return urlField.getText();
+    }
+
+    public void clearUrl() {
+        urlField.clear();
+    }
+
+    public void setControlsDisabled(boolean disable) {
+        downloadButton.setDisable(disable);
+        updateButton.setDisable(disable);
+        urlField.setDisable(disable);
+    }
+
+    public void setOnDownloadAction(Runnable action) {
+        downloadButton.setOnAction(e -> action.run());
+    }
+
+    public void setOnUpdateAction(Runnable action) {
+        updateButton.setOnAction(e -> action.run());
+    }
 }

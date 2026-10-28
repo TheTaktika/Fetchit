@@ -1,92 +1,57 @@
 package parser;
 
-import org.example.model.DownloadStats;
 import org.example.model.ErrorType;
 import org.example.parser.OutputParser;
-import org.junit.jupiter.api.BeforeEach;
+import org.example.parser.event.ParseEvent;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class OutputParserTest {
 
-    private OutputParser parser;
+    private final OutputParser parser = new OutputParser();
 
-    @BeforeEach
-    void setUp() {
-        parser = new OutputParser();
+    @Test
+    void shouldParseProgress() {
+        ParseEvent event = parser.parseLine("[download]  45.5% of 10.00MiB");
+        assertInstanceOf(ParseEvent.Progress.class, event);
+        assertEquals(45.5, ((ParseEvent.Progress) event).percent(), 0.001);
     }
 
     @Test
-    void parseProgressLine_returnsCorrectPercent() {
-        double result = parser.parseLine("[download]  45.2% of 3.21MiB at 1.20MiB/s ETA 00:01");
-        assertEquals(45.2, result, 0.001);
+    void shouldParseError() {
+        ParseEvent event = parser.parseLine("ERROR: Video is private");
+        assertInstanceOf(ParseEvent.Error.class, event);
+        ParseEvent.Error error = (ParseEvent.Error) event;
+        assertEquals(ErrorType.PRIVATE_VIDEO, error.type());
+        assertEquals("Video is private", error.message());
     }
 
     @Test
-    void parseProgressLine_withFullPercent_returns100() {
-        double result = parser.parseLine("[download] 100% of 3.21MiB");
-        assertEquals(100.0, result, 0.001);
+    void shouldParseTotalItems() {
+        ParseEvent event = parser.parseLine("Downloading item 1 of 5");
+        assertInstanceOf(ParseEvent.TotalItems.class, event);
+        assertEquals(5, ((ParseEvent.TotalItems) event).total());
     }
 
     @Test
-    void parseNonProgressLine_returnsMinusOne() {
-        double result = parser.parseLine("some random output line");
-        assertEquals(-1, result);
+    void shouldParseSkipped() {
+        ParseEvent event = parser.parseLine("video.mp4 has already been downloaded");
+        assertInstanceOf(ParseEvent.Skipped.class, event);
     }
 
     @Test
-    void parseItemOfLine_setsTotalItems() {
-        parser.parseLine("[download] Downloading item 3 of 10");
-        assertEquals(10, parser.getStats().getTotalItems());
+    void shouldParseCompleted() {
+        ParseEvent event1 = parser.parseLine("[ExtractAudio] Destination: audio.mp3");
+        assertInstanceOf(ParseEvent.Completed.class, event1);
+
+        ParseEvent event2 = parser.parseLine("[Merger] Merging formats into video.mp4");
+        assertInstanceOf(ParseEvent.Completed.class, event2);
     }
 
     @Test
-    void parseErrorLine_incrementsErrors() {
-        parser.parseLine("ERROR: unable to download video data");
-        DownloadStats stats = parser.getStats();
-        assertEquals(1, stats.getErrorsCount());
-        assertEquals(1, stats.getClassifiedErrors().size());
-        assertTrue(stats.getClassifiedErrors().containsKey(ErrorType.NETWORK_ERROR));
-    }
-
-    @Test
-    void parseAlreadyDownloadedLine_incrementsSkippedAndCompleted() {
-        parser.parseLine("downloads/song.mp3 has already been downloaded");
-        DownloadStats stats = parser.getStats();
-        assertEquals(1, stats.getSkippedCount());
-        assertEquals(1, stats.getCompletedItems());
-    }
-
-    @Test
-    void parseExtractAudioLine_incrementsDownloadedAndCompleted() {
-        parser.parseLine("[ExtractAudio] Destination: downloads/song.mp3");
-        DownloadStats stats = parser.getStats();
-        assertEquals(1, stats.getDownloadedCount());
-        assertEquals(1, stats.getCompletedItems());
-    }
-
-    @Test
-    void constructorWithTotalItems_setsTotalItemsImmediately() {
-        OutputParser p = new OutputParser(5);
-        assertEquals(5, p.getStats().getTotalItems());
-    }
-
-    @Test
-    void parseItemOfLine_doesNotOverrideInitialTotalItems() {
-        OutputParser p = new OutputParser(5);
-        p.parseLine("[download] Downloading item 1 of 10");
-        assertEquals(5, p.getStats().getTotalItems());
-    }
-
-    @Test
-    void parseMultipleErrors_accumulatesMessages() {
-        parser.parseLine("ERROR: unable to download video data");
-        parser.parseLine("ERROR: video unavailable in your country");
-        DownloadStats stats = parser.getStats();
-        assertEquals(2, stats.getErrorsCount());
-        assertEquals(2, stats.getClassifiedErrors().size());
-        assertTrue(stats.getClassifiedErrors().containsKey(ErrorType.NETWORK_ERROR));
-        assertTrue(stats.getClassifiedErrors().containsKey(ErrorType.GEO_BLOCKED));
+    void shouldIgnoreUnknownLines() {
+        ParseEvent event = parser.parseLine("Some random yt-dlp log line");
+        assertInstanceOf(ParseEvent.Ignored.class, event);
     }
 }

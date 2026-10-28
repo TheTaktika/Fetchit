@@ -2,6 +2,8 @@ package org.example.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import java.util.Objects;
+
 public class Preset {
 
     private String name;
@@ -242,4 +244,41 @@ public class Preset {
 
     public boolean isSplitChapters() { return splitChapters; }
     public void setSplitChapters(boolean splitChapters) { this.splitChapters = splitChapters; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Preset preset = (Preset) o;
+        return audioQuality == preset.audioQuality &&
+                embedThumbnail == preset.embedThumbnail &&
+                addMetadata == preset.addMetadata &&
+                embedSubtitles == preset.embedSubtitles &&
+                writeSubtitles == preset.writeSubtitles &&
+                embedChapters == preset.embedChapters &&
+                concurrentFragments == preset.concurrentFragments &&
+                retries == preset.retries &&
+                keepVideo == preset.keepVideo &&
+                noOverwrites == preset.noOverwrites &&
+                splitChapters == preset.splitChapters &&
+                Objects.equals(name, preset.name) &&
+                Objects.equals(format, preset.format) &&
+                Objects.equals(audioFormat, preset.audioFormat) &&
+                Objects.equals(videoQuality, preset.videoQuality) &&
+                Objects.equals(mergeOutputFormat, preset.mergeOutputFormat) &&
+                Objects.equals(recodeVideo, preset.recodeVideo) &&
+                Objects.equals(subtitleLanguages, preset.subtitleLanguages) &&
+                Objects.equals(limitRate, preset.limitRate) &&
+                Objects.equals(sponsorblockRemove, preset.sponsorblockRemove) &&
+                Objects.equals(sponsorblockMark, preset.sponsorblockMark) &&
+                Objects.equals(cookiesFromBrowser, preset.cookiesFromBrowser);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, format, audioFormat, audioQuality, videoQuality, mergeOutputFormat,
+                recodeVideo, embedThumbnail, addMetadata, embedSubtitles, writeSubtitles, embedChapters,
+                subtitleLanguages, concurrentFragments, limitRate, retries, sponsorblockRemove,
+                sponsorblockMark, keepVideo, noOverwrites, cookiesFromBrowser, splitChapters);
+    }
 }
