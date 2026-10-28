@@ -111,4 +111,30 @@ class PresetStorageTest {
         assertEquals("MP3 High Quality", loaded.get(0).getName());
         assertEquals("Video 1080p MP4", loaded.get(1).getName());
     }
+
+    @Test
+    void shouldCreateDefaultPresetsWhenFileDoesNotExist() {
+        File tempFile = tempDir.resolve("presets.json").toFile();
+        PresetStorage storage = new PresetStorage(tempFile);
+
+        List<Preset> presets = storage.load();
+
+        assertEquals(2, presets.size());
+        assertTrue(tempFile.exists());
+    }
+
+    @Test
+    void shouldSaveAndLoadPresets() {
+        File tempFile = tempDir.resolve("presets.json").toFile();
+        PresetStorage storage = new PresetStorage(tempFile);
+
+        Preset customPreset = Preset.defaultAudioPreset();
+        customPreset.setName("My Custom Preset");
+
+        storage.save(List.of(customPreset));
+        List<Preset> loaded = storage.load();
+
+        assertEquals(1, loaded.size());
+        assertEquals("My Custom Preset", loaded.get(0).getName());
+    }
 }

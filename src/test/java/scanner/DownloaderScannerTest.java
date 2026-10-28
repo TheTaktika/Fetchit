@@ -66,4 +66,18 @@ class DownloaderScannerTest {
         Set<String> ids = scanner.scanDownloadedIds(file.getAbsolutePath());
         assertTrue(ids.isEmpty());
     }
+
+    @Test
+    void shouldScanFolderAndIgnoreUnsupportedExtensions() throws IOException {
+        File folder = tempDir.toFile();
+
+        new File(folder, "video1.mp4").createNewFile();
+        new File(folder, "audio1.mp3").createNewFile();
+        new File(folder, "document.txt").createNewFile();
+
+        DownloaderScanner scanner = new DownloaderScanner();
+        Set<String> ids = scanner.scanDownloadedIds(folder.getAbsolutePath());
+
+        assertTrue(ids.isEmpty());
+    }
 }
