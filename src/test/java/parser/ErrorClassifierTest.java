@@ -81,4 +81,36 @@ class ErrorClassifierTest {
         assertEquals(ErrorType.BOT_CHECK,
                 classifier.classify("Sign in to confirm you're not a bot"));
     }
+
+    @Test
+    void shouldReturnUnknownForNullOrBlank() {
+        assertEquals(ErrorType.UNKNOWN, classifier.classify(null));
+        assertEquals(ErrorType.UNKNOWN, classifier.classify("   "));
+    }
+
+    @Test
+    void shouldClassifyInvalidUrl() {
+        assertEquals(ErrorType.INVALID_URL, classifier.classify("ERROR: YouTube said: Invalid URL"));
+        assertEquals(ErrorType.INVALID_URL, classifier.classify("getaddrinfo failed"));
+    }
+
+    @Test
+    void shouldClassifyGeoBlocked() {
+        assertEquals(ErrorType.GEO_BLOCKED, classifier.classify("Video is not available in your country"));
+    }
+
+    @Test
+    void shouldClassifyBotCheck() {
+        assertEquals(ErrorType.BOT_CHECK, classifier.classify("Sign in to confirm you're not a bot"));
+    }
+
+    @Test
+    void shouldClassifyNetworkError() {
+        assertEquals(ErrorType.NETWORK_ERROR, classifier.classify("Read timed out"));
+    }
+
+    @Test
+    void shouldReturnUnknownForUnrecognizedError() {
+        assertEquals(ErrorType.UNKNOWN, classifier.classify("Some completely new error"));
+    }
 }
