@@ -1,7 +1,5 @@
 package org.example.model;
 
-import org.example.ui.LanguageManager;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;

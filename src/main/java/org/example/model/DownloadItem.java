@@ -53,4 +53,20 @@ public class DownloadItem {
     public void pause() {
         setStatus(DownloadStatus.PAUSED);
     }
+
+    public boolean canPause() {
+        return getStatus() == DownloadStatus.FETCHING ||
+                getStatus() == DownloadStatus.DOWNLOADING ||
+                getStatus() == DownloadStatus.PROCESSING;
+    }
+
+    public boolean canResume() {
+        return getStatus() == DownloadStatus.PAUSED ||
+                getStatus() == DownloadStatus.CANCELLED ||
+                getStatus() == DownloadStatus.ERROR;
+    }
+
+    public boolean canCancel() {
+        return canPause() || getStatus() == DownloadStatus.WAITING;
+    }
 }

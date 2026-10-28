@@ -33,14 +33,13 @@ public class StatsFormatter {
         Map<ErrorType, List<String>> errors = stats.getClassifiedErrors();
         if (!errors.isEmpty()) {
             sb.append("\n").append(lang.get("status.error_details")).append("\n");
-            for (Map.Entry<ErrorType, List<String>> entry : errors.entrySet()) {
-                int count = entry.getValue().size();
-                sb.append("  • ").append(lang.get(entry.getKey().getMessageKey()));
-                if (count > 1) {
-                    sb.append(" (x").append(count).append(")");
+            errors.forEach((type, messages) -> {
+                sb.append("  • ").append(lang.get(type.getMessageKey()));
+                if (messages.size() > 1) {
+                    sb.append(" (x").append(messages.size()).append(")");
                 }
                 sb.append("\n");
-            }
+            });
         }
         return sb.toString();
     }

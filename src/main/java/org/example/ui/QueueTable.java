@@ -1,6 +1,10 @@
 package org.example.ui;
 
-import javafx.scene.control.*;
+import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
+import javafx.scene.control.TableCell;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import org.example.model.DownloadItem;
@@ -17,6 +21,15 @@ public class QueueTable extends TableView<DownloadItem> {
     public QueueTable() {
         setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
+        setupThumbnailColumn();
+        setupTitleColumn();
+        setupStatusColumn();
+        setupProgressColumn();
+
+        getColumns().addAll(thumbnailCol, titleCol, statusCol, progressCol);
+    }
+
+    private void setupThumbnailColumn() {
         thumbnailCol.setCellValueFactory(cell -> cell.getValue().thumbnailProperty());
         thumbnailCol.setPrefWidth(100);
         thumbnailCol.setCellFactory(column -> new TableCell<>() {
@@ -35,10 +48,14 @@ public class QueueTable extends TableView<DownloadItem> {
                 }
             }
         });
+    }
 
+    private void setupTitleColumn() {
         titleCol.setCellValueFactory(cell -> cell.getValue().titleProperty());
         titleCol.setPrefWidth(300);
+    }
 
+    private void setupStatusColumn() {
         statusCol.setCellValueFactory(cell -> cell.getValue().statusProperty());
         statusCol.setPrefWidth(150);
         statusCol.setCellFactory(column -> new TableCell<>() {
@@ -52,7 +69,9 @@ public class QueueTable extends TableView<DownloadItem> {
                 }
             }
         });
+    }
 
+    private void setupProgressColumn() {
         progressCol.setCellValueFactory(cell -> cell.getValue().progressProperty());
         progressCol.setPrefWidth(200);
         progressCol.setCellFactory(column -> new TableCell<>() {
@@ -68,9 +87,6 @@ public class QueueTable extends TableView<DownloadItem> {
                 }
             }
         });
-
-        //noinspection unchecked
-        getColumns().addAll(thumbnailCol, titleCol, statusCol, progressCol);
     }
 
     public void updateTexts() {

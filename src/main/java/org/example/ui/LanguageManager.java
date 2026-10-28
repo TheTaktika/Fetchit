@@ -1,11 +1,12 @@
 package org.example.ui;
 
 import java.util.Locale;
+import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
 public class LanguageManager {
 
-    private static LanguageManager instance;
+    private static final LanguageManager instance = new LanguageManager();
     private ResourceBundle bundle;
     private Locale currentLocale;
 
@@ -14,9 +15,6 @@ public class LanguageManager {
     }
 
     public static LanguageManager getInstance() {
-        if (instance == null) {
-            instance = new LanguageManager();
-        }
         return instance;
     }
 
@@ -32,7 +30,7 @@ public class LanguageManager {
     public String get(String key) {
         try {
             return bundle.getString(key);
-        } catch (Exception e) {
+        } catch (MissingResourceException e) {
             return "!" + key + "!";
         }
     }

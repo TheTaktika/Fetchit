@@ -18,7 +18,7 @@ public class ErrorClassifier {
                     "not available in your country", "unavailable in your country",
                     "not available in your region", "unavailable in your region", "geo restricted"
             )),
-            new Rule(ErrorType.PRIVATE_VIDEO, List.of("private video")),
+            new Rule(ErrorType.PRIVATE_VIDEO, List.of("private video", "video is private")),
             new Rule(ErrorType.RATE_LIMITED, List.of("http error 429", "too many requests")),
             new Rule(ErrorType.NETWORK_ERROR, List.of(
                     "unable to download video data", "read timed out", "connection reset",

@@ -15,32 +15,21 @@ public class SettingsBar extends HBox {
     private final TextField proxyField = new TextField();
     private final ComboBox<Preset> presetComboBox = new ComboBox<>();
     private final Button settingsButton = new Button();
-    private final PresetStorage presetStorage = new PresetStorage();
+    private final PresetStorage presetStorage;
     private final LanguageManager lang = LanguageManager.getInstance();
-    private List<Preset> presets;
 
-    public SettingsBar() {
+    public SettingsBar(PresetStorage presetStorage) {
         super(10);
+        this.presetStorage = presetStorage;
+
         setAlignment(Pos.CENTER_LEFT);
         setPadding(new Insets(5, 10, 5, 10));
 
         proxyField.setPrefWidth(300);
         presetComboBox.setPrefWidth(200);
 
-        presetComboBox.setCellFactory(lv -> new ListCell<>() {
-            @Override
-            protected void updateItem(Preset item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? null : item.getName());
-            }
-        });
-        presetComboBox.setButtonCell(new ListCell<>() {
-            @Override
-            protected void updateItem(Preset item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? null : item.getName());
-            }
-        });
+        presetComboBox.setCellFactory(lv -> createPresetCell());
+        presetComboBox.setButtonCell(createPresetCell());
 
         loadPresets();
 
@@ -54,8 +43,18 @@ public class SettingsBar extends HBox {
         updateTexts();
     }
 
+    private ListCell<Preset> createPresetCell() {
+        return new ListCell<>() {
+            @Override
+            protected void updateItem(Preset item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.getName());
+            }
+        };
+    }
+
     public void loadPresets() {
-        presets = presetStorage.load();
+        List<Preset> presets = presetStorage.load();
         presetComboBox.getItems().setAll(presets);
         if (!presets.isEmpty() && presetComboBox.getValue() == null) {
             presetComboBox.getSelectionModel().selectFirst();
@@ -72,9 +71,19 @@ public class SettingsBar extends HBox {
         outputDirLabel.setText(lang.get("label.folder") + " " + dirName);
     }
 
-    public Preset getSelectedPreset() { return presetComboBox.getValue(); }
-    public String getProxyText() { return proxyField.getText(); }
-    public Button getChooseDirButton() { return chooseDirButton; }
-    public Button getSettingsButton() { return settingsButton; }
-    public PresetStorage getPresetStorage() { return presetStorage; }
+    public Preset getSelectedPreset() {
+        return presetComboBox.getValue();
+    }
+
+    public String getProxyText() {
+        return proxyField.getText();
+    }
+
+    public void setOnChooseDirAction(Runnable action) {
+        chooseDirButton.setOnAction(e -> action.run());
+    }
+
+    public void setOnSettingsAction(Runnable action) {
+        settingsButton.setOnAction(e -> action.run());
+    }
 }

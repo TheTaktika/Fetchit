@@ -6,13 +6,13 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.layout.*;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.example.model.Preset;
 import org.example.service.PresetStorage;
-
-import java.util.List;
 
 public class PresetEditorDialog {
     private final LanguageManager lang = LanguageManager.getInstance();
@@ -20,32 +20,16 @@ public class PresetEditorDialog {
     private final Stage stage;
     private final PresetStorage storage;
     private final ObservableList<Preset> presets;
-
     private final ListView<Preset> presetList = new ListView<>();
-    private final TextField nameField = new TextField();
-    private final ComboBox<String> formatBox = new ComboBox<>();
-    private final ComboBox<String> audioFormatBox = new ComboBox<>();
-    private final Spinner<Integer> audioQualitySpinner = new Spinner<>(0, 10, 0);
-    private final ComboBox<String> videoQualityBox = new ComboBox<>();
-    private final ComboBox<String> mergeFormatBox = new ComboBox<>();
-    private final CheckBox embedThumbnailBox = new CheckBox();
-    private final CheckBox addMetadataBox = new CheckBox();
-    private final CheckBox embedChaptersBox = new CheckBox();
-    private final CheckBox writeSubsBox = new CheckBox();
-    private final CheckBox embedSubsBox = new CheckBox();
-    private final TextField subLangsField = new TextField();
-    private final Spinner<Integer> fragmentsSpinner = new Spinner<>(1, 16, 1);
-    private final TextField limitRateField = new TextField();
-    private final Spinner<Integer> retriesSpinner = new Spinner<>(0, 50, 10);
-    private final TextField sponsorblockRemoveField = new TextField();
-    private final CheckBox keepVideoBox = new CheckBox();
-    private final CheckBox noOverwritesBox = new CheckBox();
-    private final ComboBox<String> cookiesBox = new ComboBox<>();
-    private final CheckBox splitChaptersBox = new CheckBox();
+
+    private final PresetFormPane formPane;
+    private final PresetFormBinder formBinder;
 
     public PresetEditorDialog(Stage owner, PresetStorage storage) {
         this.storage = storage;
         this.presets = FXCollections.observableArrayList(storage.load());
+        this.formPane = new PresetFormPane();
+        this.formBinder = new PresetFormBinder(formPane);
 
         this.stage = new Stage();
         stage.initOwner(owner);
@@ -54,19 +38,10 @@ public class PresetEditorDialog {
 
         presetList.setItems(presets);
         presetList.setPrefWidth(200);
-        presetList.setCellFactory(lv -> new ListCell<>() {
-            @Override
-            protected void updateItem(Preset item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? null : item.getName());
-            }
-        });
+        presetList.setCellFactory(lv -> createPresetCell());
         presetList.getSelectionModel().selectedItemProperty().addListener(
-                (obs, old, sel) -> fillForm(sel)
+                (obs, old, sel) -> formBinder.fill(sel)
         );
-
-        buildForm();
-        applyTooltips();
 
         Button createBtn = new Button(lang.get("preset.btn_create"));
         Button deleteBtn = new Button(lang.get("preset.btn_delete"));
@@ -82,7 +57,7 @@ public class PresetEditorDialog {
         buttons.setAlignment(Pos.CENTER_RIGHT);
         buttons.setPadding(new Insets(10));
 
-        HBox main = new HBox(10, presetList, buildFormPane());
+        HBox main = new HBox(10, presetList, formPane);
         HBox.setHgrow(main, Priority.ALWAYS);
         main.setPadding(new Insets(10));
 
@@ -97,164 +72,14 @@ public class PresetEditorDialog {
         }
     }
 
-    private void buildForm() {
-        formatBox.setItems(FXCollections.observableArrayList("audio", "video"));
-        audioFormatBox.setItems(FXCollections.observableArrayList("mp3", "m4a", "flac", "opus", "wav"));
-        videoQualityBox.setItems(FXCollections.observableArrayList("best", "2160p", "1440p", "1080p", "720p", "480p", "360p"));
-        mergeFormatBox.setItems(FXCollections.observableArrayList("mp4", "mkv", "webm"));
-        audioQualitySpinner.setEditable(true);
-        fragmentsSpinner.setEditable(true);
-        retriesSpinner.setEditable(true);
-    }
-
-    private void applyTooltips() {
-        nameField.setTooltip(buildTooltip(lang.get("tooltip.name")));
-        formatBox.setTooltip(buildTooltip(lang.get("tooltip.format")));
-        audioFormatBox.setTooltip(buildTooltip(lang.get("tooltip.audio_format")));
-        audioQualitySpinner.setTooltip(buildTooltip(lang.get("tooltip.audio_quality")));
-        videoQualityBox.setTooltip(buildTooltip(lang.get("tooltip.video_quality")));
-        mergeFormatBox.setTooltip(buildTooltip(lang.get("tooltip.merge_format")));
-        embedThumbnailBox.setTooltip(buildTooltip(lang.get("tooltip.embed_thumbnail")));
-        addMetadataBox.setTooltip(buildTooltip(lang.get("tooltip.add_metadata")));
-        embedChaptersBox.setTooltip(buildTooltip(lang.get("tooltip.embed_chapters")));
-        writeSubsBox.setTooltip(buildTooltip(lang.get("tooltip.write_subs")));
-        embedSubsBox.setTooltip(buildTooltip(lang.get("tooltip.embed_subs")));
-        subLangsField.setTooltip(buildTooltip(lang.get("tooltip.sub_langs")));
-        fragmentsSpinner.setTooltip(buildTooltip(lang.get("tooltip.fragments")));
-        limitRateField.setTooltip(buildTooltip(lang.get("tooltip.limit_rate")));
-        retriesSpinner.setTooltip(buildTooltip(lang.get("tooltip.retries")));
-        sponsorblockRemoveField.setTooltip(buildTooltip(lang.get("tooltip.sponsorblock")));
-        keepVideoBox.setTooltip(buildTooltip(lang.get("tooltip.keep_video")));
-        noOverwritesBox.setTooltip(buildTooltip(lang.get("tooltip.no_overwrites")));
-    }
-
-    private Tooltip buildTooltip(String text) {
-        Tooltip tooltip = new Tooltip(text);
-        tooltip.setShowDelay(javafx.util.Duration.millis(300));
-        tooltip.setWrapText(true);
-        tooltip.setMaxWidth(400);
-        return tooltip;
-    }
-
-    private VBox buildFormPane() {
-        embedThumbnailBox.setText(lang.get("preset.embed_thumbnail"));
-        addMetadataBox.setText(lang.get("preset.add_metadata"));
-        embedChaptersBox.setText(lang.get("preset.embed_chapters"));
-        splitChaptersBox.setText(lang.get("preset.split_chapters"));
-        writeSubsBox.setText(lang.get("preset.write_subs"));
-        embedSubsBox.setText(lang.get("preset.embed_subs"));
-        keepVideoBox.setText(lang.get("preset.keep_video"));
-        noOverwritesBox.setText(lang.get("preset.no_overwrites"));
-        cookiesBox.setItems(FXCollections.observableArrayList("none", "chrome", "firefox", "edge", "opera", "brave"));
-        cookiesBox.getSelectionModel().selectFirst();
-        cookiesBox.setCellFactory(lv -> new ListCell<>() {
+    private ListCell<Preset> createPresetCell() {
+        return new ListCell<>() {
             @Override
-            protected void updateItem(String item, boolean empty) {
+            protected void updateItem(Preset item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText(null);
-                } else if ("none".equals(item)) {
-                    setText(lang.get("preset.cookies_none"));
-                } else {
-                    setText(item);
-                }
+                setText(empty || item == null ? null : item.getName());
             }
-        });
-        cookiesBox.setButtonCell(cookiesBox.getCellFactory().call(null));
-
-        GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(8);
-        grid.setPadding(new Insets(10));
-        ColumnConstraints c1 = new ColumnConstraints();
-        c1.setMinWidth(160);
-        ColumnConstraints c2 = new ColumnConstraints();
-        c2.setHgrow(Priority.ALWAYS);
-        grid.getColumnConstraints().addAll(c1, c2);
-
-        int row = 0;
-        grid.add(new Label(lang.get("preset.name")), 0, row); grid.add(nameField, 1, row++);
-        grid.add(new Label(lang.get("preset.format")), 0, row); grid.add(formatBox, 1, row++);
-        grid.add(new Label(lang.get("preset.audio_format")), 0, row); grid.add(audioFormatBox, 1, row++);
-        grid.add(new Label(lang.get("preset.audio_quality")), 0, row); grid.add(audioQualitySpinner, 1, row++);
-        grid.add(new Label(lang.get("preset.video_quality")), 0, row); grid.add(videoQualityBox, 1, row++);
-        grid.add(new Label(lang.get("preset.merge_format")), 0, row); grid.add(mergeFormatBox, 1, row++);
-        grid.add(embedThumbnailBox, 0, row++, 2, 1);
-        grid.add(addMetadataBox, 0, row++, 2, 1);
-        grid.add(embedChaptersBox, 0, row++, 2, 1);
-        grid.add(writeSubsBox, 0, row++, 2, 1);
-        grid.add(embedSubsBox, 0, row++, 2, 1);
-        grid.add(new Label(lang.get("preset.sub_langs")), 0, row); grid.add(subLangsField, 1, row++);
-        subLangsField.setPromptText(lang.get("preset.prompt_sublangs"));
-        grid.add(new Label(lang.get("preset.fragments")), 0, row); grid.add(fragmentsSpinner, 1, row++);
-        grid.add(new Label(lang.get("preset.limit_rate")), 0, row); grid.add(limitRateField, 1, row++);
-        limitRateField.setPromptText(lang.get("preset.prompt_limit_rate"));
-        grid.add(new Label(lang.get("preset.retries")), 0, row); grid.add(retriesSpinner, 1, row++);
-        grid.add(new Label(lang.get("preset.sponsorblock")), 0, row); grid.add(sponsorblockRemoveField, 1, row++);
-        sponsorblockRemoveField.setPromptText(lang.get("preset.prompt_sponsorblock"));
-        grid.add(keepVideoBox, 0, row++, 2, 1);
-        grid.add(noOverwritesBox, 0, row++, 2, 1);
-        grid.add(new Label(lang.get("preset.cookies")), 0, row); grid.add(cookiesBox, 1, row++);
-        grid.add(splitChaptersBox, 0, row++, 2, 1);
-
-        ScrollPane scroll = new ScrollPane(grid);
-        scroll.setFitToWidth(true);
-        VBox pane = new VBox(scroll);
-        VBox.setVgrow(scroll, Priority.ALWAYS);
-        HBox.setHgrow(pane, Priority.ALWAYS);
-        return pane;
-    }
-
-    private void fillForm(Preset p) {
-        if (p == null) return;
-        nameField.setText(p.getName());
-        formatBox.setValue(p.getFormat());
-        audioFormatBox.setValue(p.getAudioFormat());
-        audioQualitySpinner.getValueFactory().setValue(p.getAudioQuality());
-        videoQualityBox.setValue(p.getVideoQuality());
-        mergeFormatBox.setValue(p.getMergeOutputFormat());
-        embedThumbnailBox.setSelected(p.isEmbedThumbnail());
-        addMetadataBox.setSelected(p.isAddMetadata());
-        embedChaptersBox.setSelected(p.isEmbedChapters());
-        writeSubsBox.setSelected(p.isWriteSubtitles());
-        embedSubsBox.setSelected(p.isEmbedSubtitles());
-        subLangsField.setText(p.getSubtitleLanguages() == null ? "" : p.getSubtitleLanguages());
-        fragmentsSpinner.getValueFactory().setValue(p.getConcurrentFragments());
-        limitRateField.setText(p.getLimitRate() == null ? "" : p.getLimitRate());
-        retriesSpinner.getValueFactory().setValue(p.getRetries());
-        sponsorblockRemoveField.setText(p.getSponsorblockRemove() == null ? "" : p.getSponsorblockRemove());
-        keepVideoBox.setSelected(p.isKeepVideo());
-        noOverwritesBox.setSelected(p.isNoOverwrites());
-        cookiesBox.setValue(p.getCookiesFromBrowser() == null ? "none" : p.getCookiesFromBrowser());
-        splitChaptersBox.setSelected(p.isSplitChapters());
-    }
-
-    private void applyForm(Preset p) {
-        p.setName(nameField.getText().isBlank() ? lang.get("preset.no_name") : nameField.getText().trim());
-        p.setFormat(formatBox.getValue() == null ? "audio" : formatBox.getValue());
-        p.setAudioFormat(audioFormatBox.getValue());
-        p.setAudioQuality(audioQualitySpinner.getValue());
-        p.setVideoQuality(videoQualityBox.getValue());
-        p.setMergeOutputFormat(mergeFormatBox.getValue());
-        p.setEmbedThumbnail(embedThumbnailBox.isSelected());
-        p.setAddMetadata(addMetadataBox.isSelected());
-        p.setEmbedChapters(embedChaptersBox.isSelected());
-        p.setWriteSubtitles(writeSubsBox.isSelected());
-        p.setEmbedSubtitles(embedSubsBox.isSelected());
-        p.setSubtitleLanguages(emptyToNull(subLangsField.getText()));
-        p.setConcurrentFragments(fragmentsSpinner.getValue());
-        p.setLimitRate(emptyToNull(limitRateField.getText()));
-        p.setRetries(retriesSpinner.getValue());
-        p.setSponsorblockRemove(emptyToNull(sponsorblockRemoveField.getText()));
-        p.setKeepVideo(keepVideoBox.isSelected());
-        p.setNoOverwrites(noOverwritesBox.isSelected());
-        String selectedCookies = cookiesBox.getValue();
-        p.setCookiesFromBrowser("none".equals(selectedCookies) ? null : selectedCookies);
-        p.setSplitChapters(splitChaptersBox.isSelected());
-    }
-
-    private String emptyToNull(String s) {
-        return (s == null || s.isBlank()) ? null : s.trim();
+        };
     }
 
     private void onCreate() {
@@ -277,7 +102,7 @@ public class PresetEditorDialog {
             showAlert(lang.get("preset.alert_select"));
             return;
         }
-        applyForm(selected);
+        formBinder.apply(selected);
         presetList.refresh();
         storage.save(presets);
         showAlert(lang.get("preset.alert_saved"));
@@ -291,9 +116,5 @@ public class PresetEditorDialog {
 
     public void show() {
         stage.showAndWait();
-    }
-
-    public List<Preset> getPresets() {
-        return presets;
     }
 }

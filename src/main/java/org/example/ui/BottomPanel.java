@@ -49,11 +49,9 @@ public class BottomPanel extends SplitPane {
         if (item != null) {
             statsArea.textProperty().bind(item.summaryProperty());
         } else {
-            statsArea.textProperty().unbind();
             statsArea.clear();
         }
     }
-
 
     public void updateTexts() {
         logsTab.setText(lang.get("tab.logs"));

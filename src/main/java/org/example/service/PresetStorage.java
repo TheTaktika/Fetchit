@@ -4,13 +4,15 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.example.model.Preset;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 
 public class PresetStorage {
 
+    private static final Logger log = LoggerFactory.getLogger(PresetStorage.class);
     private static final String FILE_NAME = "presets.json";
     private final ObjectMapper mapper;
     private final File file;
@@ -27,9 +29,7 @@ public class PresetStorage {
 
     public List<Preset> load() {
         if (!file.exists()) {
-            List<Preset> defaults = new ArrayList<>();
-            defaults.add(Preset.defaultAudioPreset());
-            defaults.add(Preset.defaultVideoPreset());
+            List<Preset> defaults = createDefaultPresets();
             save(defaults);
             return defaults;
         }
@@ -39,12 +39,13 @@ public class PresetStorage {
             presets.forEach(this::normalize);
             return presets;
         } catch (Exception e) {
-            System.err.println("Не удалось загрузить пресеты: " + e.getMessage());
-            List<Preset> defaults = new ArrayList<>();
-            defaults.add(Preset.defaultAudioPreset());
-            defaults.add(Preset.defaultVideoPreset());
-            return defaults;
+            log.error("Не удалось загрузить пресеты: {}", e.getMessage());
+            return createDefaultPresets();
         }
+    }
+
+    private List<Preset> createDefaultPresets() {
+        return List.of(Preset.defaultAudioPreset(), Preset.defaultVideoPreset());
     }
 
     private void normalize(Preset p) {
@@ -66,7 +67,7 @@ public class PresetStorage {
         try {
             mapper.writeValue(file, presets);
         } catch (Exception e) {
-            System.err.println("Не удалось сохранить пресеты: " + e.getMessage());
+            log.error("Не удалось сохранить пресеты: {}", e.getMessage());
         }
     }
 }

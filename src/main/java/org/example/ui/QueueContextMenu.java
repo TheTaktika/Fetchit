@@ -75,20 +75,14 @@ public class QueueContextMenu extends ContextMenu {
             }
         });
 
-        setOnShowing(e -> {
-            DownloadItem selected = table.getSelectionModel().getSelectedItem();
-            if (selected == null) return;
+        setOnShowing(e -> updateMenuState(table.getSelectionModel().getSelectedItem()));
+    }
 
-            boolean isActive = (selected.getStatus() == DownloadStatus.FETCHING ||
-                    selected.getStatus() == DownloadStatus.DOWNLOADING ||
-                    selected.getStatus() == DownloadStatus.PROCESSING);
-
-            pauseMenu.setDisable(!isActive);
-            cancelMenu.setDisable(!isActive && selected.getStatus() != DownloadStatus.WAITING);
-            resumeMenu.setDisable(selected.getStatus() != DownloadStatus.PAUSED &&
-                    selected.getStatus() != DownloadStatus.CANCELLED &&
-                    selected.getStatus() != DownloadStatus.ERROR);
-        });
+    private void updateMenuState(DownloadItem selected) {
+        if (selected == null) return;
+        pauseMenu.setDisable(!selected.canPause());
+        cancelMenu.setDisable(!selected.canCancel());
+        resumeMenu.setDisable(!selected.canResume());
     }
 
     public void updateTexts() {
