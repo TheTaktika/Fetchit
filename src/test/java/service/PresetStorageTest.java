@@ -135,6 +135,6 @@ class PresetStorageTest {
         List<Preset> loaded = storage.load();
 
         assertEquals(1, loaded.size());
-        assertEquals("My Custom Preset", loaded.get(0).getName());
+        assertEquals("My Custom Preset", loaded.getFirst().getName());
     }
 }

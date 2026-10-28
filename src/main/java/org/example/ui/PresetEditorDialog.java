@@ -22,13 +22,12 @@ public class PresetEditorDialog {
     private final ObservableList<Preset> presets;
     private final ListView<Preset> presetList = new ListView<>();
 
-    private final PresetFormPane formPane;
     private final PresetFormBinder formBinder;
 
     public PresetEditorDialog(Stage owner, PresetStorage storage) {
         this.storage = storage;
         this.presets = FXCollections.observableArrayList(storage.load());
-        this.formPane = new PresetFormPane();
+        PresetFormPane formPane = new PresetFormPane();
         this.formBinder = new PresetFormBinder(formPane);
 
         this.stage = new Stage();

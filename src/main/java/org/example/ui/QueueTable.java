@@ -26,6 +26,7 @@ public class QueueTable extends TableView<DownloadItem> {
         setupStatusColumn();
         setupProgressColumn();
 
+        //noinspection unchecked
         getColumns().addAll(thumbnailCol, titleCol, statusCol, progressCol);
     }
 

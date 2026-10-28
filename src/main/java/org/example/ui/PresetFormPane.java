@@ -5,7 +5,6 @@ import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import org.example.model.Preset;
 
 public class PresetFormPane extends VBox {
     private final LanguageManager lang = LanguageManager.getInstance();
@@ -142,7 +141,7 @@ public class PresetFormPane extends VBox {
         addSpanRow(grid, row++, keepVideoBox);
         addSpanRow(grid, row++, noOverwritesBox);
         addRow(grid, row++, "preset.cookies", cookiesBox);
-        addSpanRow(grid, row++, splitChaptersBox);
+        addSpanRow(grid, row, splitChaptersBox);
 
         ScrollPane scroll = new ScrollPane(grid);
         scroll.setFitToWidth(true);

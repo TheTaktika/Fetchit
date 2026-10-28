@@ -15,26 +15,22 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
 class YtDlpServiceTest {
 
     private YtDlpService service;
     private ProcessRunner mockRunner;
-    private YtDlpCommandBuilder mockBuilder;
 
     @BeforeEach
     void setUp() {
         mockRunner = mock(ProcessRunner.class);
-        mockBuilder = mock(YtDlpCommandBuilder.class);
+        YtDlpCommandBuilder mockBuilder = mock(YtDlpCommandBuilder.class);
         when(mockBuilder.buildDownloadCommand(any())).thenReturn(List.of("yt-dlp"));
         service = new YtDlpService(mockBuilder, mockRunner, new ErrorClassifier());
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void shouldUpdateStatsBasedOnOutput() {
         doAnswer(invocation -> {
             Consumer<String> stdout = invocation.getArgument(1);

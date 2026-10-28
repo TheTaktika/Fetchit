@@ -4,6 +4,8 @@ import org.example.model.DownloadConfig;
 import org.example.model.Preset;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -132,8 +134,12 @@ public class YtDlpCommandBuilder {
         File tempDir = new File(System.getProperty("java.io.tmpdir"), "FetchIt_temp");
         File outputDir = new File(config.outputDir());
 
-        if (!tempDir.exists()) tempDir.mkdirs();
-        if (!outputDir.exists()) outputDir.mkdirs();
+        try {
+            Files.createDirectories(tempDir.toPath());
+            Files.createDirectories(outputDir.toPath());
+        } catch (IOException e) {
+            throw new RuntimeException("Не удалось создать папки для скачивания", e);
+        }
 
         command.add("-P"); command.add("temp:" + tempDir.getAbsolutePath());
         command.add("-P"); command.add("home:" + outputDir.getAbsolutePath());

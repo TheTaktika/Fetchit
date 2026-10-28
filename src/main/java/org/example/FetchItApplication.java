@@ -37,7 +37,7 @@ public class FetchItApplication extends Application {
 
     public FetchItApplication() {
         this.bottomPanel = new BottomPanel(queueTable);
-        this.queueManager = new QueueManager(downloadQueue, ytDlpService, text -> bottomPanel.appendLog(text));
+        this.queueManager = new QueueManager(downloadQueue, ytDlpService, bottomPanel::appendLog);
         this.contextMenu = new QueueContextMenu(queueTable, downloadQueue, queueManager);
 
         this.topBar = new TopBar(this::updateTexts);
@@ -56,9 +56,9 @@ public class FetchItApplication extends Application {
         queueTable.updateTexts();
         queueTable.setContextMenu(contextMenu);
 
-        queueTable.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
-            bottomPanel.bindStatsTo(newSelection);
-        });
+        queueTable.getSelectionModel()
+                .selectedItemProperty()
+                .addListener((obs, oldSelection, newSelection) -> bottomPanel.bindStatsTo(newSelection));
 
         root.setPadding(new Insets(0));
         Scene scene = new Scene(root, 1000, 650);
@@ -81,7 +81,9 @@ public class FetchItApplication extends Application {
 
     private void setupSelectedDir() {
         if (!selectedDir.exists()) {
-            selectedDir.mkdirs();
+            if (!selectedDir.mkdirs()) {
+                System.err.println("Не удалось создать папку: " + selectedDir.getAbsolutePath());
+            }
         }
     }
 

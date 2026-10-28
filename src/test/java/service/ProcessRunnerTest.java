@@ -30,6 +30,6 @@ class ProcessRunnerTest {
 
         assertEquals(0, exitCode);
         assertFalse(outputLines.isEmpty());
-        assertEquals("Hello FetchIt", outputLines.get(0).trim());
+        assertEquals("Hello FetchIt", outputLines.getFirst().trim());
     }
 }

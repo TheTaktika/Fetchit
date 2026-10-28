@@ -72,7 +72,7 @@ public class YtDlpService {
         );
 
         if ((playlistThumbnail[0] == null || "NA".equals(playlistThumbnail[0]) || playlistThumbnail[0].isBlank()) && !ids.isEmpty()) {
-            playlistThumbnail[0] = "https://i.ytimg.com/vi/" + ids.get(0) + "/maxresdefault.jpg";
+            playlistThumbnail[0] = "https://i.ytimg.com/vi/" + ids.getFirst() + "/maxresdefault.jpg";
         }
 
         if (ids.isEmpty() && exitCode != 0) {
@@ -158,15 +158,15 @@ public class YtDlpService {
                 stats.addError(e.type(), e.message());
             }
             case ParseEvent.TotalItems t -> stats.setTotalItems(t.total());
-            case ParseEvent.Completed c -> {
+            case ParseEvent.Completed() -> {
                 stats.incrementDownloaded();
                 stats.incrementCompleted();
             }
-            case ParseEvent.Skipped s -> {
+            case ParseEvent.Skipped() -> {
                 stats.incrementSkipped();
                 stats.incrementCompleted();
             }
-            case ParseEvent.Ignored ignored -> { }
+            case ParseEvent.Ignored() -> { }
         }
     }
 }

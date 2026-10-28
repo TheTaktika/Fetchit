@@ -9,7 +9,6 @@ import org.example.model.DownloadItem;
 public class BottomPanel extends SplitPane {
     private final TextArea logsArea = new TextArea();
     private final TextArea statsArea = new TextArea();
-    private final TabPane tabs = new TabPane();
     private final Tab logsTab = new Tab();
     private final Tab statsTab = new Tab();
     private final LanguageManager lang = LanguageManager.getInstance();
@@ -26,6 +25,7 @@ public class BottomPanel extends SplitPane {
         statsTab.setContent(statsArea);
         statsTab.setClosable(false);
 
+        TabPane tabs = new TabPane();
         tabs.getTabs().addAll(logsTab, statsTab);
 
         this.setOrientation(Orientation.VERTICAL);
