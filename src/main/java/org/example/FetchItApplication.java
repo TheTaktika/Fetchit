@@ -103,8 +103,8 @@ public class FetchItApplication extends Application {
 
         boolean isDuplicate = downloadQueue.stream()
                 .anyMatch(i -> i.getConfig().url().equals(url) &&
-                        i.getStatus() != DownloadItem.Status.ERROR &&
-                        i.getStatus() != DownloadItem.Status.CANCELLED);
+                        i.getStatus() != DownloadStatus.ERROR &&
+                        i.getStatus() != DownloadStatus.CANCELLED);
         if (isDuplicate) {
             bottomPanel.appendLog(lang.get("error.duplicate_in_queue") + "\n");
             return;

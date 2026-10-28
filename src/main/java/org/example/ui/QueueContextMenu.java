@@ -5,6 +5,7 @@ import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TableView;
 import org.example.model.DownloadItem;
+import org.example.model.DownloadStatus;
 import org.example.service.QueueManager;
 
 import java.util.Collections;
@@ -35,9 +36,9 @@ public class QueueContextMenu extends ContextMenu {
         removeMenu.setOnAction(e -> {
             DownloadItem selected = table.getSelectionModel().getSelectedItem();
             if (selected != null) {
-                if (selected.getStatus() != DownloadItem.Status.DONE &&
-                        selected.getStatus() != DownloadItem.Status.ERROR &&
-                        selected.getStatus() != DownloadItem.Status.CANCELLED) {
+                if (selected.getStatus() != DownloadStatus.DONE &&
+                        selected.getStatus() != DownloadStatus.ERROR &&
+                        selected.getStatus() != DownloadStatus.CANCELLED) {
                     queueManager.cancelItem(selected);
                 }
                 queue.remove(selected);
@@ -78,15 +79,15 @@ public class QueueContextMenu extends ContextMenu {
             DownloadItem selected = table.getSelectionModel().getSelectedItem();
             if (selected == null) return;
 
-            boolean isActive = (selected.getStatus() == DownloadItem.Status.FETCHING ||
-                    selected.getStatus() == DownloadItem.Status.DOWNLOADING ||
-                    selected.getStatus() == DownloadItem.Status.PROCESSING);
+            boolean isActive = (selected.getStatus() == DownloadStatus.FETCHING ||
+                    selected.getStatus() == DownloadStatus.DOWNLOADING ||
+                    selected.getStatus() == DownloadStatus.PROCESSING);
 
             pauseMenu.setDisable(!isActive);
-            cancelMenu.setDisable(!isActive && selected.getStatus() != DownloadItem.Status.WAITING);
-            resumeMenu.setDisable(selected.getStatus() != DownloadItem.Status.PAUSED &&
-                    selected.getStatus() != DownloadItem.Status.CANCELLED &&
-                    selected.getStatus() != DownloadItem.Status.ERROR);
+            cancelMenu.setDisable(!isActive && selected.getStatus() != DownloadStatus.WAITING);
+            resumeMenu.setDisable(selected.getStatus() != DownloadStatus.PAUSED &&
+                    selected.getStatus() != DownloadStatus.CANCELLED &&
+                    selected.getStatus() != DownloadStatus.ERROR);
         });
     }
 

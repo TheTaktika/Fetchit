@@ -30,7 +30,7 @@ public class QueueManager {
         if (currentItem != null) return;
 
         DownloadItem nextItem = queue.stream()
-                .filter(item -> item.getStatus() == DownloadItem.Status.WAITING)
+                .filter(item -> item.getStatus() == DownloadStatus.WAITING)
                 .findFirst()
                 .orElse(null);
 
@@ -41,7 +41,7 @@ public class QueueManager {
     }
 
     private void startDownloadTask(DownloadItem item) {
-        item.setStatus(DownloadItem.Status.FETCHING);
+        item.setStatus(DownloadStatus.FETCHING);
 
         Task<Void> task = new Task<>() {
             @Override
@@ -56,7 +56,7 @@ public class QueueManager {
                 );
 
                 if (!fetchResult.isSuccess()) {
-                    item.setStatus(DownloadItem.Status.ERROR);
+                    item.setStatus(DownloadStatus.ERROR);
                     return null;
                 }
 
@@ -77,7 +77,7 @@ public class QueueManager {
                 }
 
                 if (toDownload.isEmpty()) {
-                    item.setStatus(DownloadItem.Status.DONE);
+                    item.setStatus(DownloadStatus.DONE);
                     item.setProgress(100.0);
 
                     if (fetchResult.title() != null && !"NA".equals(fetchResult.title())) {
@@ -101,7 +101,7 @@ public class QueueManager {
                     return null;
                 }
 
-                item.setStatus(DownloadItem.Status.DOWNLOADING);
+                item.setStatus(DownloadStatus.DOWNLOADING);
 
                 DownloadStats stats = ytDlpService.downloadByIds(
                         config,
@@ -123,8 +123,8 @@ public class QueueManager {
 
                                     if (percent >= 100.0) {
                                         item.setProgress(99.0);
-                                        if (item.getStatus() == DownloadItem.Status.DOWNLOADING) {
-                                            item.setStatus(DownloadItem.Status.PROCESSING);
+                                        if (item.getStatus() == DownloadStatus.DOWNLOADING) {
+                                            item.setStatus(DownloadStatus.PROCESSING);
                                         }
                                     } else {
                                         item.setProgress(Math.min(percent, 99.0));
@@ -175,14 +175,14 @@ public class QueueManager {
                         }
                 );
 
-                if (item.getStatus() == DownloadItem.Status.CANCELLED || item.getStatus() == DownloadItem.Status.PAUSED) {
+                if (item.getStatus() == DownloadStatus.CANCELLED || item.getStatus() == DownloadStatus.PAUSED) {
                     return null;
                 }
 
                 if (stats.getErrorsCount() > 0) {
-                    item.setStatus(DownloadItem.Status.ERROR);
+                    item.setStatus(DownloadStatus.ERROR);
                 } else {
-                    item.setStatus(DownloadItem.Status.DONE);
+                    item.setStatus(DownloadStatus.DONE);
                     item.setProgress(100.0);
                 }
 
@@ -194,8 +194,8 @@ public class QueueManager {
 
         task.setOnSucceeded(e -> finishTask(item));
         task.setOnFailed(e -> {
-            if (item.getStatus() != DownloadItem.Status.CANCELLED && item.getStatus() != DownloadItem.Status.PAUSED) {
-                item.setStatus(DownloadItem.Status.ERROR);
+            if (item.getStatus() != DownloadStatus.CANCELLED && item.getStatus() != DownloadStatus.PAUSED) {
+                item.setStatus(DownloadStatus.ERROR);
                 Platform.runLater(() -> logCallback.accept(LanguageManager.getInstance().get("status.error_prefix") + task.getException().getMessage() + "\n"));
             }
             finishTask(item);
@@ -231,8 +231,8 @@ public class QueueManager {
     }
 
     public void resumeItem(DownloadItem item) {
-        if (item.getStatus() == DownloadItem.Status.PAUSED || item.getStatus() == DownloadItem.Status.CANCELLED || item.getStatus() == DownloadItem.Status.ERROR) {
-            item.setStatus(DownloadItem.Status.WAITING);
+        if (item.getStatus() == DownloadStatus.PAUSED || item.getStatus() == DownloadStatus.CANCELLED || item.getStatus() == DownloadStatus.ERROR) {
+            item.setStatus(DownloadStatus.WAITING);
             processQueue();
         }
     }

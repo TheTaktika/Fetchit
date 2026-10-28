@@ -1,42 +1,37 @@
 package org.example.model;
 
 import javafx.beans.property.*;
+import org.example.ui.LanguageManager;
+
+import java.util.Objects;
 
 public class DownloadItem {
-
-    public enum Status {
-        WAITING, FETCHING, DOWNLOADING, PROCESSING, DONE, ERROR, CANCELLED, PAUSED
-    }
-
     private final StringProperty url = new SimpleStringProperty();
     private final StringProperty title = new SimpleStringProperty("");
-    private final ObjectProperty<Status> status = new SimpleObjectProperty<>(Status.WAITING);
+    private final ObjectProperty<DownloadStatus> status = new SimpleObjectProperty<>(DownloadStatus.WAITING);
     private final DoubleProperty progress = new SimpleDoubleProperty(0.0);
     private final DownloadConfig config;
     private final StringProperty summary = new SimpleStringProperty("");
     private final ObjectProperty<javafx.scene.image.Image> thumbnail = new SimpleObjectProperty<>();
 
     public DownloadItem(String url, DownloadConfig config) {
-        this.url.set(url);
+        this.url.set(Objects.requireNonNull(url, LanguageManager.getInstance().get("error.null_url")));
         this.config = config;
         this.title.set(url);
     }
 
-    @SuppressWarnings("unused")
     public String getUrl() { return url.get(); }
     @SuppressWarnings("unused")
     public StringProperty urlProperty() { return url; }
 
-    @SuppressWarnings("unused")
     public String getTitle() { return title.get(); }
     public StringProperty titleProperty() { return title; }
     public void setTitle(String title) { this.title.set(title); }
 
-    public Status getStatus() { return status.get(); }
-    public ObjectProperty<Status> statusProperty() { return status; }
-    public void setStatus(Status status) { this.status.set(status); }
+    public DownloadStatus getStatus() { return status.get(); }
+    public ObjectProperty<DownloadStatus> statusProperty() { return status; }
+    public void setStatus(DownloadStatus status) { this.status.set(status); }
 
-    @SuppressWarnings("unused")
     public double getProgress() { return progress.get(); }
     public DoubleProperty progressProperty() { return progress; }
     public void setProgress(double progress) { this.progress.set(progress); }
@@ -52,10 +47,10 @@ public class DownloadItem {
     public DownloadConfig getConfig() { return config; }
 
     public void cancel() {
-        setStatus(Status.CANCELLED);
+        setStatus(DownloadStatus.CANCELLED);
     }
 
     public void pause() {
-        setStatus(Status.PAUSED);
+        setStatus(DownloadStatus.PAUSED);
     }
 }

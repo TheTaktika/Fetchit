@@ -4,13 +4,14 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import org.example.model.DownloadItem;
+import org.example.model.DownloadStatus;
 
 public class QueueTable extends TableView<DownloadItem> {
     private final LanguageManager lang = LanguageManager.getInstance();
 
     private final TableColumn<DownloadItem, Image> thumbnailCol = new TableColumn<>();
     private final TableColumn<DownloadItem, String> titleCol = new TableColumn<>();
-    private final TableColumn<DownloadItem, DownloadItem.Status> statusCol = new TableColumn<>();
+    private final TableColumn<DownloadItem, DownloadStatus> statusCol = new TableColumn<>();
     private final TableColumn<DownloadItem, Number> progressCol = new TableColumn<>();
 
     public QueueTable() {
@@ -42,7 +43,7 @@ public class QueueTable extends TableView<DownloadItem> {
         statusCol.setPrefWidth(150);
         statusCol.setCellFactory(column -> new TableCell<>() {
             @Override
-            protected void updateItem(DownloadItem.Status item, boolean empty) {
+            protected void updateItem(DownloadStatus item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || item == null) {
                     setText(null);
