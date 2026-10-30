@@ -135,7 +135,7 @@
                             </appContentPaths>
                             <destination>${project.build.directory}/installer</destination>
                             <appVersion>1.1.0</appVersion>
-                            <winConsole>true</winConsole>
+                            <winConsole>false</winConsole>
                             <modulePaths>
                                 <modulePath>${javafx.jmods.path}</modulePath>
                             </modulePaths>
@@ -144,8 +144,14 @@
                                 <addModule>javafx.fxml</addModule>
                                 <addModule>javafx.graphics</addModule>
                                 <addModule>javafx.base</addModule>
-                                <addModule>javafx.media</addModule>
+                                <addModule>java.logging</addModule>
                             </addModules>
+                            <jLinkOptions>
+                                <jlinkOption>--strip-debug</jlinkOption>
+                                <jlinkOption>--no-man-pages</jlinkOption>
+                                <jlinkOption>--no-header-files</jlinkOption>
+                                <jlinkOption>--compress=zip-9</jlinkOption>
+                            </jLinkOptions>
                         </configuration>
                     </execution>
                 </executions>

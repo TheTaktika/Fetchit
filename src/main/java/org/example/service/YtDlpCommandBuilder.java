@@ -27,6 +27,7 @@ public class YtDlpCommandBuilder {
     public List<String> buildPlaylistCommand(DownloadConfig config) {
         List<String> command = new ArrayList<>();
         command.add(pathResolver.resolveBundledTool("yt-dlp.exe"));
+        addJsRuntime(command);
 
         if (config.hasProxy()) {
             command.add("--proxy");
@@ -39,6 +40,8 @@ public class YtDlpCommandBuilder {
             command.add(preset.getCookiesFromBrowser());
         }
 
+        command.add("--encoding");
+        command.add("utf-8");
         command.add("--flat-playlist");
         command.add("--print"); command.add("%(id)s");
         command.add("--print"); command.add("TITLE:%(playlist_title,title)s");
@@ -52,6 +55,7 @@ public class YtDlpCommandBuilder {
     public List<String> buildDownloadCommand(DownloadConfig config) {
         List<String> command = new ArrayList<>();
         command.add(pathResolver.resolveBundledTool("yt-dlp.exe"));
+        addJsRuntime(command);
 
         if (config.hasProxy()) {
             command.add("--proxy");
@@ -153,5 +157,11 @@ public class YtDlpCommandBuilder {
         }
 
         return command;
+    }
+
+    private void addJsRuntime(List<String> command) {
+        String qjsPath = pathResolver.resolveBundledTool("qjs.exe");
+        command.add("--js-runtimes");
+        command.add("quickjs:" + qjsPath);
     }
 }
