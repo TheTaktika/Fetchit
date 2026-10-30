@@ -6,7 +6,7 @@
 
     <groupId>org.example</groupId>
     <artifactId>FetchIt</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>0.3.0-beta</version>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -125,7 +125,7 @@
                         <configuration>
                             <name>FetchIt</name>
                             <mainClass>org.example.Launcher</mainClass>
-                            <mainJar>FetchIt-1.0-SNAPSHOT.jar</mainJar>
+                            <mainJar>FetchIt-0.3.0-beta.jar</mainJar>
                             <input>${project.build.directory}</input>
                             <type>EXE</type>
                             <winShortcut>true</winShortcut>
@@ -134,7 +134,7 @@
                                 <appContentPath>${project.basedir}/bundle</appContentPath>
                             </appContentPaths>
                             <destination>${project.build.directory}/installer</destination>
-                            <appVersion>1.1.0</appVersion>
+                            <appVersion>0.3.0</appVersion>
                             <winConsole>false</winConsole>
                             <modulePaths>
                                 <modulePath>${javafx.jmods.path}</modulePath>
