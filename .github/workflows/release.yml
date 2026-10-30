@@ -45,24 +45,6 @@ jobs:
            Get-ChildItem "javafx-jmods-21" | Select-Object -First 5
         shell: pwsh
 
-      - name: Download bundle binaries
-        run: |
-          New-Item -ItemType Directory -Force -Path "bundle" | Out-Null
-          Invoke-WebRequest -Uri "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" -OutFile "bundle/yt-dlp.exe"
-          Invoke-WebRequest -Uri "https://github.com/GyanD/codexffmpeg/releases/download/9.0.1/ffmpeg-9.0.1-essentials_build.zip" -OutFile "ffmpeg.zip"
-          Expand-Archive -Path "ffmpeg.zip" -DestinationPath "ffmpeg-temp" -Force
-          $ffmpegBin = Get-ChildItem -Path "ffmpeg-temp" -Recurse -Filter "ffmpeg.exe" | Select-Object -First 1
-          $ffprobeBin = Get-ChildItem -Path "ffmpeg-temp" -Recurse -Filter "ffprobe.exe" | Select-Object -First 1
-          Copy-Item $ffmpegBin.FullName "bundle/ffmpeg.exe"
-          Copy-Item $ffprobeBin.FullName "bundle/ffprobe.exe"
-          Remove-Item -Recurse -Force "ffmpeg-temp", "ffmpeg.zip"
-          Invoke-WebRequest -Uri "https://github.com/denoland/deno/releases/download/v2.9.6/deno-x86_64-pc-windows-msvc.zip" -OutFile "deno.zip"
-          Expand-Archive -Path "deno.zip" -DestinationPath "deno-temp" -Force
-          Copy-Item "deno-temp/deno.exe" "bundle/deno.exe"
-          Remove-Item -Recurse -Force "deno-temp", "deno.zip"
-          Get-ChildItem "bundle" | Format-Table Name, Length
-        shell: pwsh
-
       - name: Build with Maven
         run: mvn -B clean verify
 
