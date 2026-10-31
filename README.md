@@ -5,7 +5,7 @@
 FetchIt — это десктопное приложение (GUI) для популярного консольного загрузчика `yt-dlp`. Оно создано для тех, кто хочет получить всю мощь `yt-dlp`, но без необходимости запоминать десятки флагов командной строки.
 
 [![Latest Release](https://img.shields.io/github/v/release/TheTaktika/Fetchit?color=green&label=latest)](https://github.com/TheTaktika/Fetchit/releases)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/TheTaktika/Fetchit/release.yml?branch=main)](https://github.com/TheTaktika/Fetchit/actions)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/TheTaktika/Fetchit/release.yml)](https://github.com/TheTaktika/Fetchit/actions)
 [![Java Version](https://img.shields.io/badge/Java-21-blue)](https://jdk.java.net/21/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
