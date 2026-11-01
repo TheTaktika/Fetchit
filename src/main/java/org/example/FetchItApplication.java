@@ -33,7 +33,7 @@ public class FetchItApplication extends Application {
     private final ObservableList<DownloadItem> downloadQueue = FXCollections.observableArrayList();
     private final YtDlpService ytDlpService = new YtDlpService();
     private final PresetStorage presetStorage = new PresetStorage();
-    private File selectedDir = new File("downloads");
+    private File selectedDir = new File(System.getProperty("user.home"), "Downloads/Fetchit-Downloads");
 
     public FetchItApplication() {
         this.bottomPanel = new BottomPanel(queueTable);
@@ -62,6 +62,7 @@ public class FetchItApplication extends Application {
 
         root.setPadding(new Insets(0));
         Scene scene = new Scene(root, 1000, 650);
+        stage.setOnCloseRequest(event -> Platform.exit());
         stage.setScene(scene);
         stage.show();
 
@@ -166,7 +167,9 @@ public class FetchItApplication extends Application {
             topBar.setControlsDisabled(false);
         });
 
-        new Thread(task).start();
+        Thread updateThread = new Thread(task);
+        updateThread.setDaemon(true);
+        updateThread.start();
     }
 
     private void onSettingsClick(Stage stage) {
@@ -180,10 +183,7 @@ public class FetchItApplication extends Application {
         topBar.updateTexts();
         settingsBar.updateTexts();
         queueTable.updateTexts();
-
-        if (contextMenu != null) {
-            contextMenu.updateTexts();
-        }
+        contextMenu.updateTexts();
 
         settingsBar.setOutputDir(selectedDir.getAbsolutePath());
 
@@ -191,5 +191,10 @@ public class FetchItApplication extends Application {
             Stage stage = (Stage) root.getScene().getWindow();
             stage.setTitle(lang.get("app.title"));
         }
+    }
+
+    @Override
+    public void stop() {
+        System.exit(0);
     }
 }

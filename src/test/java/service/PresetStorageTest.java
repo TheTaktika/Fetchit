@@ -30,7 +30,7 @@ class PresetStorageTest {
     void load_whenFileDoesNotExist_createsDefaults() {
         assertFalse(testFile.exists());
         List<Preset> presets = storage.load();
-        assertEquals(2, presets.size());
+        assertEquals(3, presets.size());
         assertTrue(testFile.exists());
     }
 
@@ -94,7 +94,7 @@ class PresetStorageTest {
         }
 
         List<Preset> presets = storage.load();
-        assertEquals(2, presets.size());
+        assertEquals(3, presets.size());
         assertEquals("MP3 High Quality", presets.getFirst().getName());
     }
 
@@ -119,7 +119,7 @@ class PresetStorageTest {
 
         List<Preset> presets = storage.load();
 
-        assertEquals(2, presets.size());
+        assertEquals(3, presets.size());
         assertTrue(tempFile.exists());
     }
 
