@@ -59,10 +59,26 @@ public class Preset {
         p.format = "video";
         p.videoQuality = "1080p";
         p.mergeOutputFormat = "mp4";
+        p.embedThumbnail = true;
         p.addMetadata = true;
         p.concurrentFragments = 1;
         p.retries = 10;
         p.noOverwrites = true;
+        return p;
+    }
+
+    public static Preset defaultSplitAudioPreset() {
+        Preset p = new Preset();
+        p.name = "Split MP3 High Quality";
+        p.format = "audio";
+        p.audioFormat = "mp3";
+        p.audioQuality = 0;
+        p.embedThumbnail = true;
+        p.addMetadata = true;
+        p.concurrentFragments = 1;
+        p.retries = 10;
+        p.noOverwrites = true;
+        p.splitChapters = true;
         return p;
     }
 

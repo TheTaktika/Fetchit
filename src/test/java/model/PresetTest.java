@@ -28,8 +28,23 @@ class PresetTest {
         assertEquals("video", p.getFormat());
         assertEquals("1080p", p.getVideoQuality());
         assertEquals("mp4", p.getMergeOutputFormat());
-        assertFalse(p.isEmbedThumbnail());
+        assertTrue(p.isEmbedThumbnail());
         assertTrue(p.isAddMetadata());
+    }
+
+    @Test
+    void defaultSplitAudioPreset_hasCorrectDefaults() {
+        Preset p = Preset.defaultSplitAudioPreset();
+        assertEquals("Split MP3 High Quality", p.getName());
+        assertEquals("audio", p.getFormat());
+        assertEquals("mp3", p.getAudioFormat());
+        assertEquals(0, p.getAudioQuality());
+        assertTrue(p.isEmbedThumbnail());
+        assertTrue(p.isAddMetadata());
+        assertEquals(1, p.getConcurrentFragments());
+        assertEquals(10, p.getRetries());
+        assertTrue(p.isNoOverwrites());
+        assertTrue(p.isSplitChapters());
     }
 
     @Test

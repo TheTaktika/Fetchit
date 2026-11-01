@@ -71,16 +71,26 @@ public class QueueDownloadCallbacks implements DownloadCallbacks {
     public void onThumbnailFetched(String thumbnailUrl) {
         if (allIds.size() > 1) return;
 
+        if (thumbnailUrl == null || thumbnailUrl.isBlank() || "NA".equals(thumbnailUrl)) {
+            Platform.runLater(() -> logCallback.accept("[WARN] " +  LanguageManager.getInstance().get("error.thumbnail_load") + item.getConfig().url() + "\n"));
+            return;
+        }
+
         String safeUrl = thumbnailUrl;
         if (safeUrl.endsWith(".webp")) {
             safeUrl = safeUrl.replace("vi_webp", "vi").replace(".webp", ".jpg");
         }
 
-        Image image = new Image(safeUrl, true);
+        final String finalSafeUrl = safeUrl;
+        Image image = new Image(finalSafeUrl, true);
 
         image.errorProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal) {
-                String errorMsg = LanguageManager.getInstance().get("error.thumbnail_load") + item.getConfig().url();
+                Exception e = image.getException();
+                String realReason = (e != null) ? e.getMessage() : "Unknown error";
+
+                String errorMsg = LanguageManager.getInstance().get("error.thumbnail_load")
+                        + " [" + realReason + "] URL: " + finalSafeUrl;
                 Platform.runLater(() -> logCallback.accept("[WARN] " + errorMsg + "\n"));
             }
         });

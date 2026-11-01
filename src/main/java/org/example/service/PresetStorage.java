@@ -45,7 +45,7 @@ public class PresetStorage {
     }
 
     private List<Preset> createDefaultPresets() {
-        return List.of(Preset.defaultAudioPreset(), Preset.defaultVideoPreset());
+        return List.of(Preset.defaultAudioPreset(), Preset.defaultVideoPreset(), Preset.defaultSplitAudioPreset());
     }
 
     private void normalize(Preset p) {
