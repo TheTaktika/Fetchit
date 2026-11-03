@@ -39,7 +39,7 @@ public class YtDlpService {
     }
 
     public PlaylistFetchResult getPlaylistVideoIds(DownloadConfig config, Consumer<String> onOutput) {
-        List<String> ids = new ArrayList<>();
+        List<String> urls = new ArrayList<>();
         StringBuilder stderrBuffer = new StringBuilder();
         String[] playlistTitle = {null};
         String[] playlistThumbnail = {null};
@@ -64,18 +64,14 @@ public class YtDlpService {
                             playlistThumbnail[0] = thumb;
                         }
                     } else {
-                        ids.add(trimmed);
+                        urls.add(trimmed);
                     }
                 },
                 line -> stderrBuffer.append(line).append("\n"),
                 null
         );
 
-        if ((playlistThumbnail[0] == null || "NA".equals(playlistThumbnail[0]) || playlistThumbnail[0].isBlank()) && !ids.isEmpty()) {
-            playlistThumbnail[0] = "https://i.ytimg.com/vi/" + ids.getFirst() + "/maxresdefault.jpg";
-        }
-
-        if (ids.isEmpty() && exitCode != 0) {
+        if (urls.isEmpty() && exitCode != 0) {
             ErrorType error = ErrorType.UNKNOWN;
             for (String line : stderrBuffer.toString().split("\n")) {
                 if (line.contains("ERROR:") || line.contains("Sign in to confirm")) {
@@ -92,23 +88,22 @@ public class YtDlpService {
             return PlaylistFetchResult.failure(error);
         }
 
-        return PlaylistFetchResult.success(ids, playlistTitle[0], playlistThumbnail[0]);
+        return PlaylistFetchResult.success(urls, playlistTitle[0], playlistThumbnail[0]);
     }
 
-    public DownloadStats downloadByIds(DownloadConfig config, List<String> videoIds, DownloadCallbacks callbacks) {
-        if (videoIds.isEmpty()) return new DownloadStats();
+    public DownloadStats downloadByIds(DownloadConfig config, List<String> videoUrls, DownloadCallbacks callbacks) {
+        if (videoUrls.isEmpty()) return new DownloadStats();
 
         try {
             Path tempFile = Files.createTempFile("fetchit-urls-", ".txt");
-            List<String> urls = videoIds.stream().map(id -> "https://www.youtube.com/watch?v=" + id).toList();
-            Files.write(tempFile, urls);
+            Files.write(tempFile, videoUrls);
 
             DownloadConfig listConfig = new DownloadConfig(
                     tempFile.toAbsolutePath().toString(), config.outputDir(), config.proxy(), config.preset()
             );
 
-            DownloadStats stats = downloadFromFile(listConfig, videoIds.size(), callbacks);
-            stats.setTotalItems(videoIds.size());
+            DownloadStats stats = downloadFromFile(listConfig, videoUrls.size(), callbacks);
+            stats.setTotalItems(videoUrls.size());
             Files.deleteIfExists(tempFile);
             return stats;
         } catch (Exception e) {

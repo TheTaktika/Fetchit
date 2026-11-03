@@ -43,7 +43,7 @@ public class YtDlpCommandBuilder {
         command.add("--encoding");
         command.add("utf-8");
         command.add("--flat-playlist");
-        command.add("--print"); command.add("%(id)s");
+        command.add("--print"); command.add("%(webpage_url)s");
         command.add("--print"); command.add("TITLE:%(playlist_title,title)s");
         command.add("--print"); command.add("PLAYLIST_THUMB:%(playlist_thumbnail)s");
         command.add("--print"); command.add("FIRST_VIDEO_THUMB:%(thumbnail)s");
@@ -75,6 +75,8 @@ public class YtDlpCommandBuilder {
             command.add("-x");
             command.add("--audio-format"); command.add(preset.getAudioFormat());
             command.add("--audio-quality"); command.add(String.valueOf(preset.getAudioQuality()));
+            command.add("--convert-thumbnails");
+            command.add("png");
             if (preset.isKeepVideo()) command.add("-k");
         } else {
             String vq = preset.getVideoQuality();
