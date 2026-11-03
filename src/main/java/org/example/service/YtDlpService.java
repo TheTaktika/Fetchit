@@ -147,7 +147,13 @@ public class YtDlpService {
 
     private void handleParseEvent(ParseEvent event, DownloadStats stats, DownloadCallbacks callbacks) {
         switch (event) {
-            case ParseEvent.Progress p -> callbacks.onProgress(new ProgressUpdate(p.percent(), stats.getCompletedItems(), stats.getTotalItems()));
+            case ParseEvent.Progress p -> callbacks.onProgress(new ProgressUpdate(
+                    p.percent(),
+                    stats.getCompletedItems(),
+                    stats.getTotalItems(),
+                    p.speed(),
+                    p.eta()
+            ));
             case ParseEvent.Error e -> {
                 stats.incrementErrors();
                 stats.addError(e.type(), e.message());

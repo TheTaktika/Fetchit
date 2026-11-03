@@ -17,6 +17,8 @@ public class QueueTable extends TableView<DownloadItem> {
     private final TableColumn<DownloadItem, String> titleCol = new TableColumn<>();
     private final TableColumn<DownloadItem, DownloadStatus> statusCol = new TableColumn<>();
     private final TableColumn<DownloadItem, Number> progressCol = new TableColumn<>();
+    private final TableColumn<DownloadItem, String> speedCol = new TableColumn<>();
+    private final TableColumn<DownloadItem, String> etaCol = new TableColumn<>();
 
     public QueueTable() {
         setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
@@ -25,9 +27,20 @@ public class QueueTable extends TableView<DownloadItem> {
         setupTitleColumn();
         setupStatusColumn();
         setupProgressColumn();
+        setupSpeedColumn();
+        setupEtaColumn();
 
-        //noinspection unchecked
-        getColumns().addAll(thumbnailCol, titleCol, statusCol, progressCol);
+        getColumns().addAll(thumbnailCol, titleCol, statusCol, progressCol, speedCol, etaCol);
+    }
+
+    private void setupSpeedColumn() {
+        speedCol.setCellValueFactory(cell -> cell.getValue().speedProperty());
+        speedCol.setPrefWidth(100);
+    }
+
+    private void setupEtaColumn() {
+        etaCol.setCellValueFactory(cell -> cell.getValue().etaProperty());
+        etaCol.setPrefWidth(80);
     }
 
     private void setupThumbnailColumn() {
@@ -58,7 +71,7 @@ public class QueueTable extends TableView<DownloadItem> {
 
     private void setupStatusColumn() {
         statusCol.setCellValueFactory(cell -> cell.getValue().statusProperty());
-        statusCol.setPrefWidth(150);
+        statusCol.setPrefWidth(120);
         statusCol.setCellFactory(column -> new TableCell<>() {
             @Override
             protected void updateItem(DownloadStatus item, boolean empty) {
@@ -74,7 +87,7 @@ public class QueueTable extends TableView<DownloadItem> {
 
     private void setupProgressColumn() {
         progressCol.setCellValueFactory(cell -> cell.getValue().progressProperty());
-        progressCol.setPrefWidth(200);
+        progressCol.setPrefWidth(150);
         progressCol.setCellFactory(column -> new TableCell<>() {
             private final ProgressBar progressBar = new ProgressBar(0);
             @Override
@@ -95,6 +108,8 @@ public class QueueTable extends TableView<DownloadItem> {
         titleCol.setText(lang.get("column.title"));
         statusCol.setText(lang.get("column.status"));
         progressCol.setText(lang.get("column.progress"));
+        speedCol.setText(lang.get("column.speed"));
+        etaCol.setText(lang.get("column.eta"));
         setPlaceholder(new Label(lang.get("status.queue_empty")));
         refresh();
     }

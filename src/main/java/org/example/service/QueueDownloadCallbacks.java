@@ -45,6 +45,9 @@ public class QueueDownloadCallbacks implements DownloadCallbacks {
             } else {
                 item.setProgress(Math.min(percent, 99.0));
             }
+
+            item.setSpeed(update.speed() != null ? update.speed() : "");
+            item.setEta(update.eta() != null && !"Unknown".equalsIgnoreCase(update.eta()) ? update.eta() : "");
         });
     }
 

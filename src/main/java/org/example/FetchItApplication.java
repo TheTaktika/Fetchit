@@ -83,7 +83,7 @@ public class FetchItApplication extends Application {
     private void setupSelectedDir() {
         if (!selectedDir.exists()) {
             if (!selectedDir.mkdirs()) {
-                System.err.println("Не удалось создать папку: " + selectedDir.getAbsolutePath());
+                System.err.println("Failed to create directory: " + selectedDir.getAbsolutePath());
             }
         }
     }
