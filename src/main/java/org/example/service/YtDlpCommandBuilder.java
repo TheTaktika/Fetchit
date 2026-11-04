@@ -75,8 +75,6 @@ public class YtDlpCommandBuilder {
             command.add("-x");
             command.add("--audio-format"); command.add(preset.getAudioFormat());
             command.add("--audio-quality"); command.add(String.valueOf(preset.getAudioQuality()));
-            command.add("--convert-thumbnails");
-            command.add("png");
             if (preset.isKeepVideo()) command.add("-k");
         } else {
             String vq = preset.getVideoQuality();
@@ -95,7 +93,20 @@ public class YtDlpCommandBuilder {
             }
         }
 
-        if (preset.isEmbedThumbnail()) command.add("--embed-thumbnail");
+
+        if (preset.isEmbedThumbnail()) {
+            command.add("--embed-thumbnail");
+            command.add("--convert-thumbnails");
+            command.add("jpg");
+            if (preset.isVideo() || "m4a".equalsIgnoreCase(preset.getAudioFormat())) {
+                command.add("--compat-options");
+                command.add("embed-thumbnail-atomicparsley");
+            }
+        }
+        if (preset.isVideo()) {
+            command.add("--remux-video");
+            command.add("mp4");
+        }
         if (preset.isAddMetadata()) command.add("--add-metadata");
         if (preset.isEmbedChapters()) command.add("--embed-chapters");
 
@@ -137,7 +148,7 @@ public class YtDlpCommandBuilder {
         command.add("--parse-metadata");
         command.add("%(id)s:%(meta_comment)s");
 
-        File tempDir = new File(System.getProperty("java.io.tmpdir"), "FetchIt_temp");
+        File tempDir = pathResolver.getTempDir();
         File outputDir = new File(config.outputDir());
 
         try {
