@@ -155,7 +155,7 @@ public class YtDlpCommandBuilder {
             Files.createDirectories(tempDir.toPath());
             Files.createDirectories(outputDir.toPath());
         } catch (IOException e) {
-            throw new RuntimeException("Не удалось создать папки для скачивания", e);
+            throw new RuntimeException("Failed to create directory for download", e);
         }
 
         command.add("-P"); command.add("temp:" + tempDir.getAbsolutePath());

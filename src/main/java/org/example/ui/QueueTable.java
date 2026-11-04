@@ -30,6 +30,7 @@ public class QueueTable extends TableView<DownloadItem> {
         setupSpeedColumn();
         setupEtaColumn();
 
+        //noinspection unchecked
         getColumns().addAll(thumbnailCol, titleCol, statusCol, progressCol, speedCol, etaCol);
     }
 

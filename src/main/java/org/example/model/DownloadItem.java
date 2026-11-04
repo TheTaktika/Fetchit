@@ -46,11 +46,9 @@ public class DownloadItem {
     public ObjectProperty<javafx.scene.image.Image> thumbnailProperty() { return thumbnail; }
     public void setThumbnail(javafx.scene.image.Image thumbnail) { this.thumbnail.set(thumbnail); }
 
-    public String getSpeed() { return speed.get(); }
     public StringProperty speedProperty() { return speed; }
     public void setSpeed(String speed) { this.speed.set(speed); }
 
-    public String getEta() { return eta.get(); }
     public StringProperty etaProperty() { return eta; }
     public void setEta(String eta) { this.eta.set(eta); }
 

@@ -39,7 +39,7 @@ public class PresetStorage {
             presets.forEach(this::normalize);
             return presets;
         } catch (Exception e) {
-            log.error("Failed to load Presets: {}", e.getMessage());
+            log.error("Failed to load presets", e);
             return createDefaultPresets();
         }
     }
@@ -67,7 +67,7 @@ public class PresetStorage {
         try {
             mapper.writeValue(file, presets);
         } catch (Exception e) {
-            log.error("Failed to load Presets: {}", e.getMessage());
+            log.error("Failed to save presets", e);
         }
     }
 }

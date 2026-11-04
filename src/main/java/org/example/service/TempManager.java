@@ -23,8 +23,12 @@ public class TempManager {
 
         try (Stream<Path> walk = Files.walk(tempDir.toPath())) {
             walk.sorted(Comparator.reverseOrder())
-                    .map(Path::toFile)
-                    .forEach(File::delete);
+                    .forEach(path -> {
+                        try {
+                            Files.deleteIfExists(path);
+                        } catch (IOException ignored) {
+                        }
+                    });
         }
     }
 }
