@@ -72,8 +72,10 @@ public class YtDlpService {
         );
 
         if (urls.isEmpty() && exitCode != 0) {
+            String stderr = stderrBuffer.toString();
             ErrorType error = ErrorType.UNKNOWN;
-            for (String line : stderrBuffer.toString().split("\n")) {
+
+            for (String line : stderr.split("\n")) {
                 if (line.contains("ERROR:") || line.contains("Sign in to confirm")) {
                     ErrorType detected = errorClassifier.classify(line);
                     if (detected != ErrorType.UNKNOWN) {
@@ -82,8 +84,11 @@ public class YtDlpService {
                     }
                 }
             }
+
             if (error != ErrorType.UNKNOWN) {
                 onOutput.accept("[WARN] " + LocalTime.now() + ": " + LanguageManager.getInstance().get(error.getMessageKey()));
+            } else {
+                onOutput.accept("[ERR] " + LocalTime.now() + ": " + stderr);
             }
             return PlaylistFetchResult.failure(error);
         }
@@ -123,10 +128,7 @@ public class YtDlpService {
         processRunner.run(
                 command,
                 line -> handleStdoutLine(line, parser, stats, callbacks),
-                line -> {
-                    callbacks.onLog("[ERR] " + LocalTime.now() + ": " + line);
-                    handleParseEvent(parser.parseLine(line), stats, callbacks);
-                },
+                line -> handleStderrLine(line, parser, stats, callbacks),
                 callbacks::onProcessStarted
         );
 
@@ -168,6 +170,18 @@ public class YtDlpService {
                 stats.incrementCompleted();
             }
             case ParseEvent.Ignored() -> { }
+        }
+    }
+
+    private void handleStderrLine(String line, OutputParser parser, DownloadStats stats, DownloadCallbacks callbacks) {
+        ParseEvent event = parser.parseLine(line);
+
+        if (event instanceof ParseEvent.Error err && err.type() != ErrorType.UNKNOWN) {
+            callbacks.onLog("[ERR] " + LocalTime.now() + ": " + LanguageManager.getInstance().get(err.type().getMessageKey()));
+            handleParseEvent(event, stats, callbacks);
+        } else {
+            callbacks.onLog("[ERR] " + LocalTime.now() + ": " + line);
+            handleParseEvent(event, stats, callbacks);
         }
     }
 }
