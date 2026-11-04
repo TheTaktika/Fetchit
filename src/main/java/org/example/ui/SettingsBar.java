@@ -12,6 +12,7 @@ import java.util.List;
 public class SettingsBar extends HBox {
     private final Label outputDirLabel = new Label();
     private final Button chooseDirButton = new Button();
+    private final Button clearCacheButton = new Button();
     private final TextField proxyField = new TextField();
     private final ComboBox<Preset> presetComboBox = new ComboBox<>();
     private final Button settingsButton = new Button();
@@ -25,8 +26,8 @@ public class SettingsBar extends HBox {
         setAlignment(Pos.CENTER_LEFT);
         setPadding(new Insets(5, 10, 5, 10));
 
-        proxyField.setPrefWidth(300);
-        presetComboBox.setPrefWidth(200);
+        proxyField.setPrefWidth(250);
+        presetComboBox.setPrefWidth(180);
 
         presetComboBox.setCellFactory(lv -> createPresetCell());
         presetComboBox.setButtonCell(createPresetCell());
@@ -34,7 +35,7 @@ public class SettingsBar extends HBox {
         loadPresets();
 
         getChildren().addAll(
-                chooseDirButton, outputDirLabel,
+                chooseDirButton, clearCacheButton, outputDirLabel,
                 new Label("|"),
                 proxyField,
                 new Label("|"),
@@ -64,6 +65,7 @@ public class SettingsBar extends HBox {
     public void updateTexts() {
         proxyField.setPromptText(lang.get("field.proxy"));
         chooseDirButton.setText(lang.get("button.folder"));
+        clearCacheButton.setText(lang.get("button.clear_cache"));
         settingsButton.setText(lang.get("button.settings"));
     }
 
@@ -81,6 +83,10 @@ public class SettingsBar extends HBox {
 
     public void setOnChooseDirAction(Runnable action) {
         chooseDirButton.setOnAction(e -> action.run());
+    }
+
+    public void setOnClearCacheAction(Runnable action) {
+        clearCacheButton.setOnAction(e -> action.run());
     }
 
     public void setOnSettingsAction(Runnable action) {

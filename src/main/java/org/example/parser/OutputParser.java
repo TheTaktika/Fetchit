@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 
 public class OutputParser {
 
-    private static final Pattern PROGRESS_PATTERN = Pattern.compile("\\[download]\\s+(\\d+\\.?\\d*)%");
+    private static final Pattern PROGRESS_PATTERN = Pattern.compile("\\[download]\\s+(\\d+\\.?\\d*)%(?:.*?at\\s+([^\\s]+)\\s+ETA\\s+(\\S+))?");
     private static final Pattern ITEM_OF_PATTERN = Pattern.compile("Downloading item (\\d+) of (\\d+)");
     private static final Pattern ALREADY_DOWNLOADED_PATTERN = Pattern.compile("(.+) has already been downloaded");
     private static final Pattern ERROR_PATTERN = Pattern.compile("ERROR: (.+)");
@@ -45,7 +45,9 @@ public class OutputParser {
         if (progressMatcher.find()) {
             try {
                 double percent = Double.parseDouble(progressMatcher.group(1));
-                return new ParseEvent.Progress(percent);
+                String speed = progressMatcher.group(2);
+                String eta = progressMatcher.group(3);
+                return new ParseEvent.Progress(percent, speed != null ? speed : "", eta != null ? eta : "");
             } catch (NumberFormatException e) {
                 return new ParseEvent.Ignored();
             }

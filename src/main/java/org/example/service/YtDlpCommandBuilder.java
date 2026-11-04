@@ -43,7 +43,7 @@ public class YtDlpCommandBuilder {
         command.add("--encoding");
         command.add("utf-8");
         command.add("--flat-playlist");
-        command.add("--print"); command.add("%(id)s");
+        command.add("--print"); command.add("%(webpage_url)s");
         command.add("--print"); command.add("TITLE:%(playlist_title,title)s");
         command.add("--print"); command.add("PLAYLIST_THUMB:%(playlist_thumbnail)s");
         command.add("--print"); command.add("FIRST_VIDEO_THUMB:%(thumbnail)s");
@@ -93,7 +93,20 @@ public class YtDlpCommandBuilder {
             }
         }
 
-        if (preset.isEmbedThumbnail()) command.add("--embed-thumbnail");
+
+        if (preset.isEmbedThumbnail()) {
+            command.add("--embed-thumbnail");
+            command.add("--convert-thumbnails");
+            command.add("jpg");
+            if (preset.isVideo() || "m4a".equalsIgnoreCase(preset.getAudioFormat())) {
+                command.add("--compat-options");
+                command.add("embed-thumbnail-atomicparsley");
+            }
+        }
+        if (preset.isVideo()) {
+            command.add("--remux-video");
+            command.add("mp4");
+        }
         if (preset.isAddMetadata()) command.add("--add-metadata");
         if (preset.isEmbedChapters()) command.add("--embed-chapters");
 
@@ -135,14 +148,14 @@ public class YtDlpCommandBuilder {
         command.add("--parse-metadata");
         command.add("%(id)s:%(meta_comment)s");
 
-        File tempDir = new File(System.getProperty("java.io.tmpdir"), "FetchIt_temp");
+        File tempDir = pathResolver.getTempDir();
         File outputDir = new File(config.outputDir());
 
         try {
             Files.createDirectories(tempDir.toPath());
             Files.createDirectories(outputDir.toPath());
         } catch (IOException e) {
-            throw new RuntimeException("Не удалось создать папки для скачивания", e);
+            throw new RuntimeException("Failed to create directory for download", e);
         }
 
         command.add("-P"); command.add("temp:" + tempDir.getAbsolutePath());

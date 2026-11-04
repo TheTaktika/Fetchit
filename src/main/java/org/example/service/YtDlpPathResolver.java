@@ -48,4 +48,8 @@ public class YtDlpPathResolver {
 
         return null;
     }
+
+    public java.io.File getTempDir() {
+        return new java.io.File(System.getProperty("java.io.tmpdir"), "FetchIt_temp");
+    }
 }

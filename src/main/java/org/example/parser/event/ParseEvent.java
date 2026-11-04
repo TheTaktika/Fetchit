@@ -10,7 +10,7 @@ public sealed interface ParseEvent permits
         ParseEvent.Skipped,
         ParseEvent.Ignored {
 
-    record Progress(double percent) implements ParseEvent {}
+    record Progress(double percent, String speed, String eta) implements ParseEvent {}
     record Error(ErrorType type, String message) implements ParseEvent {}
     record TotalItems(int total) implements ParseEvent {}
     record Completed() implements ParseEvent {}

@@ -39,7 +39,7 @@ public class YtDlpService {
     }
 
     public PlaylistFetchResult getPlaylistVideoIds(DownloadConfig config, Consumer<String> onOutput) {
-        List<String> ids = new ArrayList<>();
+        List<String> urls = new ArrayList<>();
         StringBuilder stderrBuffer = new StringBuilder();
         String[] playlistTitle = {null};
         String[] playlistThumbnail = {null};
@@ -64,20 +64,18 @@ public class YtDlpService {
                             playlistThumbnail[0] = thumb;
                         }
                     } else {
-                        ids.add(trimmed);
+                        urls.add(trimmed);
                     }
                 },
                 line -> stderrBuffer.append(line).append("\n"),
                 null
         );
 
-        if ((playlistThumbnail[0] == null || "NA".equals(playlistThumbnail[0]) || playlistThumbnail[0].isBlank()) && !ids.isEmpty()) {
-            playlistThumbnail[0] = "https://i.ytimg.com/vi/" + ids.getFirst() + "/maxresdefault.jpg";
-        }
-
-        if (ids.isEmpty() && exitCode != 0) {
+        if (urls.isEmpty() && exitCode != 0) {
+            String stderr = stderrBuffer.toString();
             ErrorType error = ErrorType.UNKNOWN;
-            for (String line : stderrBuffer.toString().split("\n")) {
+
+            for (String line : stderr.split("\n")) {
                 if (line.contains("ERROR:") || line.contains("Sign in to confirm")) {
                     ErrorType detected = errorClassifier.classify(line);
                     if (detected != ErrorType.UNKNOWN) {
@@ -86,29 +84,31 @@ public class YtDlpService {
                     }
                 }
             }
+
             if (error != ErrorType.UNKNOWN) {
                 onOutput.accept("[WARN] " + LocalTime.now() + ": " + LanguageManager.getInstance().get(error.getMessageKey()));
+            } else {
+                onOutput.accept("[ERR] " + LocalTime.now() + ": " + stderr);
             }
             return PlaylistFetchResult.failure(error);
         }
 
-        return PlaylistFetchResult.success(ids, playlistTitle[0], playlistThumbnail[0]);
+        return PlaylistFetchResult.success(urls, playlistTitle[0], playlistThumbnail[0]);
     }
 
-    public DownloadStats downloadByIds(DownloadConfig config, List<String> videoIds, DownloadCallbacks callbacks) {
-        if (videoIds.isEmpty()) return new DownloadStats();
+    public DownloadStats downloadByIds(DownloadConfig config, List<String> videoUrls, DownloadCallbacks callbacks) {
+        if (videoUrls.isEmpty()) return new DownloadStats();
 
         try {
             Path tempFile = Files.createTempFile("fetchit-urls-", ".txt");
-            List<String> urls = videoIds.stream().map(id -> "https://www.youtube.com/watch?v=" + id).toList();
-            Files.write(tempFile, urls);
+            Files.write(tempFile, videoUrls);
 
             DownloadConfig listConfig = new DownloadConfig(
                     tempFile.toAbsolutePath().toString(), config.outputDir(), config.proxy(), config.preset()
             );
 
-            DownloadStats stats = downloadFromFile(listConfig, videoIds.size(), callbacks);
-            stats.setTotalItems(videoIds.size());
+            DownloadStats stats = downloadFromFile(listConfig, videoUrls.size(), callbacks);
+            stats.setTotalItems(videoUrls.size());
             Files.deleteIfExists(tempFile);
             return stats;
         } catch (Exception e) {
@@ -128,10 +128,7 @@ public class YtDlpService {
         processRunner.run(
                 command,
                 line -> handleStdoutLine(line, parser, stats, callbacks),
-                line -> {
-                    callbacks.onLog("[ERR] " + LocalTime.now() + ": " + line);
-                    handleParseEvent(parser.parseLine(line), stats, callbacks);
-                },
+                line -> handleStderrLine(line, parser, stats, callbacks),
                 callbacks::onProcessStarted
         );
 
@@ -152,7 +149,13 @@ public class YtDlpService {
 
     private void handleParseEvent(ParseEvent event, DownloadStats stats, DownloadCallbacks callbacks) {
         switch (event) {
-            case ParseEvent.Progress p -> callbacks.onProgress(new ProgressUpdate(p.percent(), stats.getCompletedItems(), stats.getTotalItems()));
+            case ParseEvent.Progress p -> callbacks.onProgress(new ProgressUpdate(
+                    p.percent(),
+                    stats.getCompletedItems(),
+                    stats.getTotalItems(),
+                    p.speed(),
+                    p.eta()
+            ));
             case ParseEvent.Error e -> {
                 stats.incrementErrors();
                 stats.addError(e.type(), e.message());
@@ -168,5 +171,19 @@ public class YtDlpService {
             }
             case ParseEvent.Ignored() -> { }
         }
+    }
+
+    private void handleStderrLine(String line, OutputParser parser, DownloadStats stats, DownloadCallbacks callbacks) {
+        ParseEvent event = parser.parseLine(line);
+
+        if (event instanceof ParseEvent.Error err && err.type() != ErrorType.UNKNOWN) {
+            callbacks.onLog("[ERR] " + LocalTime.now() + ": " + LanguageManager.getInstance().get(err.type().getMessageKey()));
+        } else if (line.contains("Could not copy Chrome cookie database")) {
+            callbacks.onLog("[ERR] " + LocalTime.now() + ": " + LanguageManager.getInstance().get("error.cookies_chrome_failed"));
+        }
+            else {
+            callbacks.onLog("[ERR] " + LocalTime.now() + ": " + line);
+        }
+        handleParseEvent(event, stats, callbacks);
     }
 }

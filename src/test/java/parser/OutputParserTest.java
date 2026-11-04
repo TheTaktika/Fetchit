@@ -12,10 +12,25 @@ class OutputParserTest {
     private final OutputParser parser = new OutputParser();
 
     @Test
-    void shouldParseProgress() {
+    void shouldParseProgressWithSpeedAndEta() {
+        ParseEvent event = parser.parseLine("[download]  45.5% of 10.00MiB at 1.5MiB/s ETA 00:10");
+        assertInstanceOf(ParseEvent.Progress.class, event);
+        ParseEvent.Progress progress = (ParseEvent.Progress) event;
+
+        assertEquals(45.5, progress.percent(), 0.001);
+        assertEquals("1.5MiB/s", progress.speed());
+        assertEquals("00:10", progress.eta());
+    }
+
+    @Test
+    void shouldParseProgressWithoutSpeedAndEta() {
         ParseEvent event = parser.parseLine("[download]  45.5% of 10.00MiB");
         assertInstanceOf(ParseEvent.Progress.class, event);
-        assertEquals(45.5, ((ParseEvent.Progress) event).percent(), 0.001);
+        ParseEvent.Progress progress = (ParseEvent.Progress) event;
+
+        assertEquals(45.5, progress.percent(), 0.001);
+        assertEquals("", progress.speed());
+        assertEquals("", progress.eta());
     }
 
     @Test

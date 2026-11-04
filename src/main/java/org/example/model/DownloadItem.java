@@ -13,6 +13,8 @@ public class DownloadItem {
     private final DownloadConfig config;
     private final StringProperty summary = new SimpleStringProperty("");
     private final ObjectProperty<javafx.scene.image.Image> thumbnail = new SimpleObjectProperty<>();
+    private final StringProperty speed = new SimpleStringProperty("");
+    private final StringProperty eta = new SimpleStringProperty("");
 
     public DownloadItem(String url, DownloadConfig config) {
         this.url.set(Objects.requireNonNull(url, LanguageManager.getInstance().get("error.null_url")));
@@ -43,6 +45,12 @@ public class DownloadItem {
     public javafx.scene.image.Image getThumbnail() { return thumbnail.get(); }
     public ObjectProperty<javafx.scene.image.Image> thumbnailProperty() { return thumbnail; }
     public void setThumbnail(javafx.scene.image.Image thumbnail) { this.thumbnail.set(thumbnail); }
+
+    public StringProperty speedProperty() { return speed; }
+    public void setSpeed(String speed) { this.speed.set(speed); }
+
+    public StringProperty etaProperty() { return eta; }
+    public void setEta(String eta) { this.eta.set(eta); }
 
     public DownloadConfig getConfig() { return config; }
 

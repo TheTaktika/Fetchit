@@ -54,7 +54,7 @@ public class PresetFormPane extends VBox {
         keepVideoBox.setText(lang.get("preset.keep_video"));
         noOverwritesBox.setText(lang.get("preset.no_overwrites"));
 
-        cookiesBox.setItems(FXCollections.observableArrayList("none", "chrome", "firefox", "edge", "opera", "brave"));
+        cookiesBox.setItems(FXCollections.observableArrayList("none", "firefox", "brave", "opera", "vivaldi"));
         cookiesBox.getSelectionModel().selectFirst();
         cookiesBox.setCellFactory(lv -> createCookiesCell());
         cookiesBox.setButtonCell(createCookiesCell());
