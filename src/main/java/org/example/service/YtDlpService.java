@@ -178,10 +178,12 @@ public class YtDlpService {
 
         if (event instanceof ParseEvent.Error err && err.type() != ErrorType.UNKNOWN) {
             callbacks.onLog("[ERR] " + LocalTime.now() + ": " + LanguageManager.getInstance().get(err.type().getMessageKey()));
-            handleParseEvent(event, stats, callbacks);
-        } else {
-            callbacks.onLog("[ERR] " + LocalTime.now() + ": " + line);
-            handleParseEvent(event, stats, callbacks);
+        } else if (line.contains("Could not copy Chrome cookie database")) {
+            callbacks.onLog("[ERR] " + LocalTime.now() + ": " + LanguageManager.getInstance().get("error.cookies_chrome_failed"));
         }
+            else {
+            callbacks.onLog("[ERR] " + LocalTime.now() + ": " + line);
+        }
+        handleParseEvent(event, stats, callbacks);
     }
 }
