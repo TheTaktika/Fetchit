@@ -31,66 +31,113 @@ public class QueueDownloadTask extends Task<Void> {
     @Override
     protected Void call() {
         item.setStatus(DownloadStatus.FETCHING);
-
         DownloadConfig config = item.getConfig();
-        Set<String> downloadedIds = scanner.scanDownloadedIds(config.outputDir());
 
-        PlaylistFetchResult fetchResult = ytDlpService.getPlaylistVideoIds(
-                config,
-                line -> Platform.runLater(() -> logCallback.accept(line + "\n"))
-        );
-
+        PlaylistFetchResult fetchResult = fetchPlaylist(config);
         if (!fetchResult.isSuccess()) {
             item.setStatus(DownloadStatus.ERROR);
             return null;
         }
 
-        List<String> allIds = fetchResult.ids();
-        List<String> toDownload = allIds.stream()
-                .filter(id -> !downloadedIds.contains(id))
-                .toList();
+        Set<String> downloadedIds = scanner.scanDownloadedIds(config.outputDir());
+        List<String> toDownload = filterAlreadyDownloaded(fetchResult.ids(), downloadedIds);
 
-        if (allIds.size() > 1) {
-            updateItemMetadata(item, fetchResult.title(), fetchResult.thumbnail());
-        }
+        updatePlaylistMetadata(fetchResult, toDownload.size());
 
         if (toDownload.isEmpty()) {
-            handleAllAlreadyDownloaded(item, fetchResult, allIds.size());
+            handleAllAlreadyDownloaded(fetchResult);
             return null;
         }
 
         item.setStatus(DownloadStatus.DOWNLOADING);
+        DownloadStats finalStats = performDownloadWithFallback(config, toDownload, fetchResult.ids());
 
+        if (isCancelledOrPaused()) {
+            return null;
+        }
+
+        updateFinalStatus(finalStats);
+        return null;
+    }
+
+    private PlaylistFetchResult fetchPlaylist(DownloadConfig config) {
+        return ytDlpService.getPlaylistVideoIds(
+                config,
+                line -> Platform.runLater(() -> logCallback.accept(line + "\n"))
+        );
+    }
+
+    private List<String> filterAlreadyDownloaded(List<String> allIds, Set<String> downloadedIds) {
+        return allIds.stream()
+                .filter(url -> downloadedIds.stream().noneMatch(url::contains))
+                .toList();
+    }
+
+    private void updatePlaylistMetadata(PlaylistFetchResult fetchResult, int toDownloadSize) {
+        if (fetchResult.ids().size() > 1 && toDownloadSize > 0) {
+            updateItemMetadata(item, fetchResult.title(), fetchResult.thumbnail());
+        }
+    }
+
+    private DownloadStats performDownloadWithFallback(DownloadConfig config, List<String> toDownload, List<String> allIds) {
         DownloadStats stats = ytDlpService.downloadByIds(
                 config,
                 toDownload,
                 new QueueDownloadCallbacks(item, allIds, logCallback, onProcessStartedCallback)
         );
 
-        if (item.getStatus() == DownloadStatus.CANCELLED || item.getStatus() == DownloadStatus.PAUSED) {
-            return null;
+        LanguageManager lang = LanguageManager.getInstance();
+
+        if (!stats.getFailedThumbnailUrls().isEmpty()) {
+            logCallback.accept(lang.get("log.retry.thumbnail") + "\n");
+            Preset noThumbPreset = copyPresetNoThumbnail(config.preset());
+            DownloadConfig fallbackConfig = new DownloadConfig(
+                    config.url(), config.outputDir(), config.proxy(), noThumbPreset
+            );
+
+            DownloadStats retryThumbStats = ytDlpService.downloadByIds(
+                    fallbackConfig,
+                    stats.getFailedThumbnailUrls(),
+                    new QueueDownloadCallbacks(item, allIds, logCallback, onProcessStartedCallback)
+            );
+            mergeStats(stats, retryThumbStats);
         }
 
+        return stats;
+    }
+
+    private void mergeStats(DownloadStats original, DownloadStats retry) {
+        if (retry.getErrorsCount() == 0) {
+            original.incrementDownloaded();
+            original.incrementCompleted();
+        } else {
+            original.addError(ErrorType.UNKNOWN, LanguageManager.getInstance().get("error.fallback_failed"));
+        }
+    }
+
+    private boolean isCancelledOrPaused() {
+        return item.getStatus() == DownloadStatus.CANCELLED || item.getStatus() == DownloadStatus.PAUSED;
+    }
+
+    private void updateFinalStatus(DownloadStats stats) {
         if (stats.getErrorsCount() > 0) {
             item.setStatus(DownloadStatus.ERROR);
         } else {
             item.setStatus(DownloadStatus.DONE);
             item.setProgress(100.0);
         }
-
         Platform.runLater(() -> item.setSummary(StatsFormatter.format(stats)));
-        return null;
     }
 
-    private void handleAllAlreadyDownloaded(DownloadItem item, PlaylistFetchResult fetchResult, int totalCount) {
+    private void handleAllAlreadyDownloaded(PlaylistFetchResult fetchResult) {
         item.setStatus(DownloadStatus.DONE);
         item.setProgress(100.0);
 
         updateItemMetadata(item, fetchResult.title(), fetchResult.thumbnail());
 
         DownloadStats emptyStats = new DownloadStats();
-        emptyStats.setPlaylistTotal(totalCount);
-        emptyStats.setAlreadyOnDisk(totalCount);
+        emptyStats.setPlaylistTotal(fetchResult.ids().size());
+        emptyStats.setAlreadyOnDisk(fetchResult.ids().size());
         emptyStats.setTotalItems(0);
 
         Platform.runLater(() -> {
@@ -108,5 +155,43 @@ public class QueueDownloadTask extends Task<Void> {
             Image img = new Image(safeUrl, true);
             Platform.runLater(() -> item.setThumbnail(img));
         }
+    }
+
+    private Preset copyPresetNoThumbnail(Preset original) {
+        Preset p = clonePreset(original);
+        p.setEmbedThumbnail(false);
+        p.setNoOverwrites(false);
+        p.setForceOverwrites(true);
+        return p;
+    }
+
+    private Preset clonePreset(Preset original) {
+        Preset p = new Preset();
+        p.setName(original.getName());
+        p.setFormat(original.getFormat());
+        p.setAudioFormat(original.getAudioFormat());
+        p.setAudioQuality(original.getAudioQuality());
+        p.setVideoQuality(original.getVideoQuality());
+        p.setMergeOutputFormat(original.getMergeOutputFormat());
+        p.setRecodeVideo(original.getRecodeVideo());
+
+        p.setEmbedThumbnail(original.isEmbedThumbnail());
+        p.setAddMetadata(original.isAddMetadata());
+
+        p.setEmbedSubtitles(original.isEmbedSubtitles());
+        p.setWriteSubtitles(original.isWriteSubtitles());
+        p.setEmbedChapters(original.isEmbedChapters());
+        p.setSubtitleLanguages(original.getSubtitleLanguages());
+        p.setConcurrentFragments(original.getConcurrentFragments());
+        p.setLimitRate(original.getLimitRate());
+        p.setRetries(original.getRetries());
+        p.setSponsorblockRemove(original.getSponsorblockRemove());
+        p.setSponsorblockMark(original.getSponsorblockMark());
+        p.setKeepVideo(original.isKeepVideo());
+        p.setNoOverwrites(original.isNoOverwrites());
+        p.setCookiesFromBrowser(original.getCookiesFromBrowser());
+        p.setSplitChapters(original.isSplitChapters());
+        p.setForceOverwrites(original.isForceOverwrites());
+        return p;
     }
 }

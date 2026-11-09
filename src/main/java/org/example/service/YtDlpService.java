@@ -125,10 +125,12 @@ public class YtDlpService {
 
         callbacks.onLog("[CMD] " + LocalTime.now() + ": " + String.join(" ", command));
 
+        DownloadContext context = new DownloadContext(stats, parser, callbacks);
+
         processRunner.run(
                 command,
-                line -> handleStdoutLine(line, parser, stats, callbacks),
-                line -> handleStderrLine(line, parser, stats, callbacks),
+                context::processStdout,
+                context::processStderr,
                 callbacks::onProcessStarted
         );
 
@@ -185,5 +187,38 @@ public class YtDlpService {
             callbacks.onLog("[ERR] " + LocalTime.now() + ": " + line);
         }
         handleParseEvent(event, stats, callbacks);
+    }
+
+    private class DownloadContext {
+        private final DownloadStats stats;
+        private final OutputParser parser;
+        private final DownloadCallbacks callbacks;
+        private String currentUrl;
+        private boolean isProcessingThumbnail = false;
+
+        public DownloadContext(DownloadStats stats, OutputParser parser, DownloadCallbacks callbacks) {
+            this.stats = stats;
+            this.parser = parser;
+            this.callbacks = callbacks;
+        }
+
+        public void processStdout(String line) {
+            if (line.contains("Extracting URL: ")) {
+                this.currentUrl = line.substring(line.indexOf("Extracting URL: ") + 16).trim();
+                this.isProcessingThumbnail = false;
+            } else if (line.contains("[EmbedThumbnail]")) {
+                this.isProcessingThumbnail = true;
+            }
+            handleStdoutLine(line, parser, stats, callbacks);
+        }
+
+        public void processStderr(String line) {
+            if (line.contains("ERROR:") && currentUrl != null) {
+                if (isProcessingThumbnail || line.contains("Conversion failed!")) {
+                    stats.addFailedThumbnailUrl(currentUrl);
+                }
+            }
+            handleStderrLine(line, parser, stats, callbacks);
+        }
     }
 }

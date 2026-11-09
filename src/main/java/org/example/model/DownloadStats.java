@@ -13,6 +13,10 @@ public class DownloadStats {
     private int skippedCount = 0;
     private int errorsCount = 0;
     private final Map<ErrorType, List<String>> classifiedErrors = new LinkedHashMap<>();
+    private final List<String> failedUrls = new ArrayList<>();
+    public enum FailedProcess { THUMBNAIL, METADATA }
+
+    private final List<String> failedThumbnailUrls = new ArrayList<>();
 
     private int totalItems = 0;
     private int completedItems = 0;
@@ -81,5 +85,30 @@ public class DownloadStats {
 
     public int getCompletedItems() {
         return completedItems;
+    }
+
+    public void addFailedUrl(String url) {
+        if (url != null && !url.isEmpty()) {
+            this.failedUrls.add(url);
+        }
+    }
+
+    public List<String> getFailedUrls() {
+        return new ArrayList<>(failedUrls);
+    }
+
+    public void resetErrors() {
+        this.errorsCount = 0;
+        this.classifiedErrors.clear();
+    }
+
+    public void addFailedThumbnailUrl(String url) {
+        if (url != null && !url.isEmpty() && !failedThumbnailUrls.contains(url)) {
+            this.failedThumbnailUrls.add(url);
+        }
+    }
+
+    public List<String> getFailedThumbnailUrls() {
+        return new ArrayList<>(failedThumbnailUrls);
     }
 }

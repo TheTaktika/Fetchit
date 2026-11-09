@@ -138,7 +138,11 @@ public class YtDlpCommandBuilder {
         if (preset.getRetries() > 0) {
             command.add("--retries"); command.add(String.valueOf(preset.getRetries()));
         }
-        if (preset.isNoOverwrites()) command.add("--no-overwrites");
+        if (preset.isNoOverwrites()) {
+            command.add("--no-overwrites");
+            command.add("--no-post-overwrites");
+        }
+        if (preset.isForceOverwrites()) command.add("--force-overwrites");
 
         String ffmpegLocation = pathResolver.resolveFfmpegLocation();
         if (ffmpegLocation != null) {

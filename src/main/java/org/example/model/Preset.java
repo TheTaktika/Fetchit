@@ -35,6 +35,7 @@ public class Preset {
     private boolean noOverwrites;
     private String cookiesFromBrowser;
     private boolean splitChapters;
+    private boolean forceOverwrites;
 
     public Preset() {
     }
@@ -260,6 +261,9 @@ public class Preset {
 
     public boolean isSplitChapters() { return splitChapters; }
     public void setSplitChapters(boolean splitChapters) { this.splitChapters = splitChapters; }
+
+    public boolean isForceOverwrites() { return forceOverwrites; }
+    public void setForceOverwrites(boolean forceOverwrites) { this.forceOverwrites = forceOverwrites; }
 
     @Override
     public boolean equals(Object o) {
