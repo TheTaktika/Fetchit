@@ -1,32 +1,17 @@
 package service;
 
-import javafx.application.Platform;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import org.example.model.*;
 import org.example.service.QueueManager;
 import org.example.service.YtDlpService;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 class QueueManagerTest {
-
-    @BeforeAll
-    static void initJavaFX() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        try {
-            Platform.startup(latch::countDown);
-        } catch (IllegalStateException e) {
-            latch.countDown();
-        }
-        latch.await();
-    }
 
     @Test
     void shouldProcessWaitingItemAndMarkDone() throws InterruptedException {
@@ -41,12 +26,14 @@ class QueueManagerTest {
         DownloadConfig config = new DownloadConfig("url", "/dir", null, Preset.defaultAudioPreset());
         DownloadItem item = new DownloadItem("url", config);
 
-        ObservableList<DownloadItem> queue = FXCollections.observableArrayList(item);
+        List<DownloadItem> queue = new ArrayList<>();
+        queue.add(item);
+
         QueueManager manager = new QueueManager(queue, mockService, msg -> {});
 
         manager.processQueue();
 
-        Thread.sleep(1000);
+        Thread.sleep(1200);
 
         assertEquals(DownloadStatus.DONE, item.getStatus());
         assertEquals(100.0, item.getProgress());

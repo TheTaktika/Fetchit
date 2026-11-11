@@ -1,8 +1,6 @@
-package org.example.ui;
+package org.example.model;
 
-import org.example.model.DownloadStats;
-import org.example.model.ErrorType;
-
+import org.example.ui.LanguageManager;
 import java.util.List;
 import java.util.Map;
 

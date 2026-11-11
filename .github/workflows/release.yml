@@ -35,23 +35,16 @@ jobs:
           }
         shell: pwsh
 
-      - name: Download JavaFX jmods
-        run: |
-           Invoke-WebRequest -Uri "https://download2.gluonhq.com/openjfx/21.0.12/openjfx-21.0.12_windows-x64_bin-jmods.zip" -OutFile "javafx-jmods.zip"
-           Expand-Archive -Path "javafx-jmods.zip" -DestinationPath "javafx-jmods-temp" -Force
-           $dir = Get-ChildItem "javafx-jmods-temp" -Directory | Select-Object -First 1
-           Move-Item $dir.FullName "javafx-jmods-21"
-           Remove-Item -Recurse -Force "javafx-jmods-temp", "javafx-jmods.zip"
-           Get-ChildItem "javafx-jmods-21" | Select-Object -First 5
-        shell: pwsh
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
-      - name: Build with Maven
-        run: mvn -B clean verify
+      - name: Build MSI Installer with Gradle
+        run: ./gradlew packageMsi
 
       - name: Create Release
         uses: softprops/action-gh-release@v3
         with:
-          files: dist/installer/*.msi
+          files: build/compose/binaries/main/msi/*.msi
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

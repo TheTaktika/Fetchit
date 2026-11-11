@@ -1,16 +1,15 @@
 package org.example.service;
 
-import javafx.application.Platform;
-import javafx.collections.ObservableList;
 import org.example.model.DownloadItem;
 import org.example.model.DownloadStatus;
 import org.example.scanner.DownloaderScanner;
 import org.example.ui.LanguageManager;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 public class QueueManager {
-    private final ObservableList<DownloadItem> queue;
+    private final List<DownloadItem> queue;
     private final YtDlpService ytDlpService;
     private final Consumer<String> logCallback;
     private final DownloaderScanner scanner;
@@ -19,7 +18,7 @@ public class QueueManager {
     private DownloadItem currentItem = null;
     private volatile Process currentProcess;
 
-    public QueueManager(ObservableList<DownloadItem> queue, YtDlpService ytDlpService, Consumer<String> logCallback) {
+    public QueueManager(List<DownloadItem> queue, YtDlpService ytDlpService, Consumer<String> logCallback) {
         this.queue = queue;
         this.ytDlpService = ytDlpService;
         this.logCallback = logCallback;
@@ -50,16 +49,18 @@ public class QueueManager {
                 process -> currentProcess = process
         );
 
-        task.setOnSucceeded(e -> finishTask(item));
-        task.setOnFailed(e -> {
-            if (item.getStatus() != DownloadStatus.CANCELLED && item.getStatus() != DownloadStatus.PAUSED) {
-                item.setStatus(DownloadStatus.ERROR);
-                Platform.runLater(() -> logCallback.accept(LanguageManager.getInstance().get("status.error_prefix") + task.getException().getMessage() + "\n"));
+        Thread.startVirtualThread(() -> {
+            try {
+                task.run();
+                finishTask(item);
+            } catch (Exception e) {
+                if (item.getStatus() != DownloadStatus.CANCELLED && item.getStatus() != DownloadStatus.PAUSED) {
+                    item.setStatus(DownloadStatus.ERROR);
+                    logCallback.accept(LanguageManager.getInstance().get("status.error_prefix") + e.getMessage() + "\n");
+                }
+                finishTask(item);
             }
-            finishTask(item);
         });
-
-        new Thread(task).start();
     }
 
     private void finishTask(DownloadItem item) {

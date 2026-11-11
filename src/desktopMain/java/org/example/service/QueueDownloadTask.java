@@ -1,18 +1,19 @@
 package org.example.service;
 
-import javafx.application.Platform;
-import javafx.concurrent.Task;
-import javafx.scene.image.Image;
 import org.example.model.*;
 import org.example.scanner.DownloaderScanner;
 import org.example.ui.LanguageManager;
-import org.example.ui.StatsFormatter;
+import org.example.model.StatsFormatter;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URL;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
-public class QueueDownloadTask extends Task<Void> {
+public class QueueDownloadTask implements Runnable {
     private final DownloadItem item;
     private final YtDlpService ytDlpService;
     private final DownloaderScanner scanner;
@@ -29,14 +30,14 @@ public class QueueDownloadTask extends Task<Void> {
     }
 
     @Override
-    protected Void call() {
+    public void run() {
         item.setStatus(DownloadStatus.FETCHING);
         DownloadConfig config = item.getConfig();
 
         PlaylistFetchResult fetchResult = fetchPlaylist(config);
         if (!fetchResult.isSuccess()) {
             item.setStatus(DownloadStatus.ERROR);
-            return null;
+            return;
         }
 
         Set<String> downloadedIds = scanner.scanDownloadedIds(config.outputDir());
@@ -46,24 +47,23 @@ public class QueueDownloadTask extends Task<Void> {
 
         if (toDownload.isEmpty()) {
             handleAllAlreadyDownloaded(fetchResult);
-            return null;
+            return;
         }
 
         item.setStatus(DownloadStatus.DOWNLOADING);
         DownloadStats finalStats = performDownloadWithFallback(config, toDownload, fetchResult.ids());
 
         if (isCancelledOrPaused()) {
-            return null;
+            return;
         }
 
         updateFinalStatus(finalStats);
-        return null;
     }
 
     private PlaylistFetchResult fetchPlaylist(DownloadConfig config) {
         return ytDlpService.getPlaylistVideoIds(
                 config,
-                line -> Platform.runLater(() -> logCallback.accept(line + "\n"))
+                line -> logCallback.accept(line + "\n")
         );
     }
 
@@ -126,7 +126,7 @@ public class QueueDownloadTask extends Task<Void> {
             item.setStatus(DownloadStatus.DONE);
             item.setProgress(100.0);
         }
-        Platform.runLater(() -> item.setSummary(StatsFormatter.format(stats)));
+        item.setSummary(StatsFormatter.format(stats));
     }
 
     private void handleAllAlreadyDownloaded(PlaylistFetchResult fetchResult) {
@@ -140,20 +140,31 @@ public class QueueDownloadTask extends Task<Void> {
         emptyStats.setAlreadyOnDisk(fetchResult.ids().size());
         emptyStats.setTotalItems(0);
 
-        Platform.runLater(() -> {
-            item.setSummary(StatsFormatter.format(emptyStats));
-            logCallback.accept(LanguageManager.getInstance().get("status.all_downloaded") + "\n");
-        });
+        item.setSummary(StatsFormatter.format(emptyStats));
+        logCallback.accept(LanguageManager.getInstance().get("status.all_downloaded") + "\n");
     }
 
     private void updateItemMetadata(DownloadItem item, String title, String thumbUrl) {
         if (title != null && !"NA".equals(title)) {
-            Platform.runLater(() -> item.setTitle(title));
+            item.setTitle(title);
         }
         if (thumbUrl != null && !"NA".equals(thumbUrl)) {
             String safeUrl = thumbUrl.replace("vi_webp", "vi").replace(".webp", ".jpg");
-            Image img = new Image(safeUrl, true);
-            Platform.runLater(() -> item.setThumbnail(img));
+
+            Thread.startVirtualThread(() -> {
+                try {
+                    URL url = URI.create(safeUrl).toURL();
+                    try (InputStream in = url.openStream();
+                         ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                        byte[] buffer = new byte[4096];
+                        int bytesRead;
+                        while ((bytesRead = in.read(buffer)) != -1) {
+                            out.write(buffer, 0, bytesRead);
+                        }
+                        item.setThumbnailData(out.toByteArray());
+                    }
+                } catch (Exception ignored) {}
+            });
         }
     }
 

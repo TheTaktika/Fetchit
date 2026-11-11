@@ -1,28 +1,13 @@
 package model;
 
-import javafx.application.Platform;
 import org.example.model.DownloadConfig;
 import org.example.model.DownloadItem;
 import org.example.model.DownloadStatus;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import java.util.concurrent.CountDownLatch;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class DownloadItemTest {
-
-    @BeforeAll
-    static void initJavaFX() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        try {
-            Platform.startup(latch::countDown);
-        } catch (IllegalStateException e) {
-            latch.countDown();
-        }
-        latch.await();
-    }
 
     @Test
     void shouldInitializeWithCorrectDefaults() {
@@ -34,7 +19,7 @@ class DownloadItemTest {
         assertEquals(DownloadStatus.WAITING, item.getStatus());
         assertEquals(0.0, item.getProgress());
         assertEquals("", item.getSummary());
-        assertNull(item.getThumbnail());
+        assertNull(item.getThumbnailData());
         assertEquals(config, item.getConfig());
     }
 

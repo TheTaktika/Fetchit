@@ -1,9 +1,9 @@
-package ui;
+package model;
 
 import org.example.model.DownloadStats;
 import org.example.model.ErrorType;
 import org.example.ui.LanguageManager;
-import org.example.ui.StatsFormatter;
+import org.example.model.StatsFormatter;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
