@@ -77,7 +77,7 @@ tasks.matching { it.name.startsWith("package") }.configureEach {
 
 compose.desktop {
     application {
-        mainClass = "org.example.LauncherKt"
+        mainClass = "org.example.ui.LauncherKt"
         nativeDistributions {
             targetFormats(org.jetbrains.compose.desktop.application.dsl.TargetFormat.Msi)
             packageName = "FetchIt"
