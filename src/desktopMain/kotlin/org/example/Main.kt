@@ -44,9 +44,9 @@ fun AppWindow(onExit: () -> Unit) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     when (controller.currentScreen) {
                         "download" -> DownloadView(controller)
-                        "queue" -> Text(controller.lang.get("sidebar.queue"))
+                        "queue" -> QueueView(controller)
                         "settings" -> Text(controller.lang.get("view.settings.title"))
-                        "logs" -> Text(controller.logsText)
+                        "logs" -> LogsView(controller)
                     }
                 }
             }

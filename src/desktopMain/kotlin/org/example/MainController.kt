@@ -25,6 +25,7 @@ class MainController {
     val downloadQueue = mutableStateListOf<DownloadItem>()
     var logsText by mutableStateOf("")
     var isUpdating by mutableStateOf(false)
+    var queueTick by mutableStateOf(0)
 
     val queueManager: QueueManager
 
@@ -35,6 +36,19 @@ class MainController {
         loadPresets()
         queueManager = QueueManager(downloadQueue, ytDlpService) { line ->
             appendLog(line)
+        }
+        Thread.startVirtualThread {
+            while (true) {
+                Thread.sleep(300)
+                val hasActive = downloadQueue.any {
+                    it.status == DownloadStatus.FETCHING ||
+                            it.status == DownloadStatus.DOWNLOADING ||
+                            it.status == DownloadStatus.PROCESSING
+                }
+                if (hasActive) {
+                    queueTick++
+                }
+            }
         }
     }
 
