@@ -17,11 +17,13 @@ fun AppWindow(onExit: () -> Unit) {
     val windowState = rememberWindowState()
     val controller = remember { MainController() }
     val darkTheme = isSystemInDarkTheme()
+    val langVer = controller.langVersion
+    val windowTitle = remember(langVer) { controller.lang.get("app.title") }
 
     Window(
         onCloseRequest = onExit,
         state = windowState,
-        title = "FetchIt",
+        title = windowTitle,
         undecorated = false
     ) {
         WindowStyle(
@@ -45,7 +47,7 @@ fun AppWindow(onExit: () -> Unit) {
                     when (controller.currentScreen) {
                         "download" -> DownloadView(controller)
                         "queue" -> QueueView(controller)
-                        "settings" -> Text(controller.lang.get("view.settings.title"))
+                        "settings" -> SettingsView(controller)
                         "logs" -> LogsView(controller)
                     }
                 }

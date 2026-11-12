@@ -26,8 +26,19 @@ class MainController {
     var logsText by mutableStateOf("")
     var isUpdating by mutableStateOf(false)
     var queueTick by mutableStateOf(0)
+    var langVersion by mutableStateOf(0)
 
     val queueManager: QueueManager
+
+    fun setLanguage(langCode: String) {
+        val newLocale = if (langCode == "RU") java.util.Locale.of("ru") else java.util.Locale.of("en")
+        lang.setLocale(newLocale)
+        langVersion++
+    }
+
+    fun getCurrentLangCode(): String {
+        return if (lang.currentLocale.language == "ru") "RU" else "EN"
+    }
 
     init {
         if (!selectedDir.exists()) {
