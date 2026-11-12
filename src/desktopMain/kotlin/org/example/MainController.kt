@@ -148,4 +148,32 @@ class MainController {
             appendLog(lang.get("error.cache_clear_failed") + e.message)
         }
     }
+
+    fun moveItemUp(item: DownloadItem) {
+        val index = downloadQueue.indexOf(item)
+        if (index > 0) {
+            val temp = downloadQueue[index]
+            downloadQueue[index] = downloadQueue[index - 1]
+            downloadQueue[index - 1] = temp
+        }
+    }
+
+    fun moveItemDown(item: DownloadItem) {
+        val index = downloadQueue.indexOf(item)
+        if (index in 0 until downloadQueue.size - 1) {
+            val temp = downloadQueue[index]
+            downloadQueue[index] = downloadQueue[index + 1]
+            downloadQueue[index + 1] = temp
+        }
+    }
+
+    fun removeItem(item: DownloadItem) {
+        if (item.status != DownloadStatus.DONE &&
+            item.status != DownloadStatus.ERROR &&
+            item.status != DownloadStatus.CANCELLED
+        ) {
+            queueManager.cancelItem(item)
+        }
+        downloadQueue.remove(item)
+    }
 }

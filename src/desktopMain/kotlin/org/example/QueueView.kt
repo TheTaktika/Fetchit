@@ -129,6 +129,7 @@ private fun QueueRow(
     val eta = remember(tick, item.eta) { item.eta }
     val title = remember(tick, item.title) { item.title }
     val thumbBytes = remember(tick, item.thumbnailData) { item.thumbnailData }
+    val index = controller.downloadQueue.indexOf(item)
 
     val rowColor = when (status) {
         DownloadStatus.DOWNLOADING, DownloadStatus.FETCHING, DownloadStatus.PROCESSING -> Color(0xFF1E3A5F).copy(alpha = 0.55f)
@@ -158,6 +159,19 @@ private fun QueueRow(
                         controller.queueTick++
                     })
                 }
+                if (index > 0) {
+                    add(ContextMenuItem(controller.lang.get("menu.move_up")) {
+                        controller.moveItemUp(item)
+                    })
+                }
+                if (index in 0 until controller.downloadQueue.size - 1) {
+                    add(ContextMenuItem(controller.lang.get("menu.move_down")) {
+                        controller.moveItemDown(item)
+                    })
+                }
+                add(ContextMenuItem(controller.lang.get("menu.remove")) {
+                    controller.removeItem(item)
+                })
             }
         }
     ) {
