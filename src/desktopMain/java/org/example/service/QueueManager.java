@@ -56,6 +56,7 @@ public class QueueManager {
             } catch (Exception e) {
                 if (item.getStatus() != DownloadStatus.CANCELLED && item.getStatus() != DownloadStatus.PAUSED) {
                     item.setStatus(DownloadStatus.ERROR);
+                    item.addFailedUrl(item.getUrl());
                     logCallback.accept(LanguageManager.getInstance().get("status.error_prefix") + e.getMessage() + "\n");
                 }
                 finishTask(item);

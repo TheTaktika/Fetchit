@@ -31,21 +31,18 @@ fun QueueItemRow(
     controller: MainController,
     onSelect: () -> Unit
 ) {
-    val status = remember(tick, item.status) { item.status }
-    val progress = remember(tick, item.progress) { item.progress }
-    val speed = remember(tick, item.speed) { item.speed }
-    val eta = remember(tick, item.eta) { item.eta }
-    val title = remember(tick, item.title) { item.title }
-    val thumbBytes = remember(tick, item.thumbnailData) { item.thumbnailData }
 
+    @Suppress("UnusedVariable") val forceUpdate = tick
+
+    val status = item.status
+    val title = item.title
+    val speed = item.speed
+    val eta = item.eta
+    val thumbBytes = item.thumbnailData
     val index = controller.queue.items.indexOf(item)
 
-    val rowColor = when (status) {
-        DownloadStatus.DOWNLOADING, DownloadStatus.FETCHING, DownloadStatus.PROCESSING -> Color(0xFF1E3A5F).copy(alpha = 0.55f)
-        DownloadStatus.DONE -> Color(0xFF1E4620).copy(alpha = 0.55f)
-        DownloadStatus.ERROR -> Color(0xFF5C1A1A).copy(alpha = 0.55f)
-        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
-    }
+    val displayProgress = rememberSmoothedProgress(item.url, item.progress, status)
+    val rowColor = getRowColor(status, MaterialTheme.colorScheme.surfaceVariant)
 
     ContextMenuArea(
         items = { buildQueueContextMenu(item, index, controller) }
@@ -63,7 +60,7 @@ fun QueueItemRow(
             QueueThumbnail(thumbBytes)
             QueueTitle(title = title, modifier = Modifier.weight(1f))
             QueueStatus(status, controller)
-            QueueProgress(progress)
+            QueueProgress(displayProgress)
             QueueTextValue(speed, QueueColumns.Speed)
             QueueTextValue(eta, QueueColumns.Eta)
         }
@@ -181,4 +178,30 @@ private fun QueueTextValue(value: String, width: androidx.compose.ui.unit.Dp) {
         style = MaterialTheme.typography.bodySmall,
         modifier = Modifier.width(width)
     )
+}
+
+private fun getRowColor(status: DownloadStatus, themeColor: Color): Color {
+    return when (status) {
+        DownloadStatus.DOWNLOADING,
+        DownloadStatus.FETCHING,
+        DownloadStatus.PROCESSING -> Color(0xFF1E3A5F).copy(alpha = 0.55f)
+        DownloadStatus.DONE -> Color(0xFF1E4620).copy(alpha = 0.55f)
+        DownloadStatus.ERROR -> Color(0xFF5C1A1A).copy(alpha = 0.55f)
+        else -> themeColor.copy(alpha = 0.25f)
+    }
+}
+
+@Composable
+private fun rememberSmoothedProgress(
+    itemUrl: String,
+    rawProgress: Double,
+    status: DownloadStatus
+): Double {
+    var maxProgress by remember(itemUrl) { mutableStateOf(0.0) }
+
+    if (rawProgress > maxProgress) {
+        maxProgress = rawProgress
+    }
+
+    return if (status == DownloadStatus.DONE) 100.0 else maxProgress
 }

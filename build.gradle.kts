@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "org.example"
-version = "0.4.0-beta"
+version = "1.0.0-beta"
 
 repositories {
     google()
@@ -75,19 +75,26 @@ tasks.matching { it.name.startsWith("package") }.configureEach {
     dependsOn("killPreviousProcess")
 }
 
+compose.resources {
+    publicResClass = true
+    packageOfResClass = "org.example.fetchit.generated.resources"
+    generateResClass = always
+}
+
 compose.desktop {
     application {
         mainClass = "org.example.ui.LauncherKt"
         nativeDistributions {
             targetFormats(org.jetbrains.compose.desktop.application.dsl.TargetFormat.Msi)
             packageName = "FetchIt"
-            packageVersion = "0.4.0"
+            packageVersion = "1.0.0"
 
             windows {
                 console = false
                 shortcut = true
                 menu = true
                 menuGroup = "FetchIt"
+                iconFile.set(project.file("bundle/icon.ico"))
                 dirChooser = true
                 upgradeUuid = "a891cee0-2ca2-4ff9-8da6-dfe10d2a1703"
             }

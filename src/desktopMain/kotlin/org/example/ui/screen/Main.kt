@@ -15,6 +15,9 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.Alignment
+import org.jetbrains.compose.resources.painterResource
+import org.example.fetchit.generated.resources.Res
+import org.example.fetchit.generated.resources.icon
 
 @Composable
 fun AppWindow(onExit: () -> Unit) {
@@ -28,11 +31,13 @@ fun AppWindow(onExit: () -> Unit) {
     val darkTheme = isSystemInDarkTheme()
     val langVer = controller.langVersion
     val windowTitle = remember(langVer) { controller.lang.get("app.title") }
+    val windowIcon = painterResource(Res.drawable.icon)
 
     Window(
         onCloseRequest = onExit,
         state = windowState,
         title = windowTitle,
+        icon = windowIcon,
         undecorated = false
     ) {
         WindowStyle(

@@ -14,6 +14,7 @@ import org.example.ui.MainController
 import org.example.ui.features.queue.blocks.QueueHeaderRow
 import org.example.ui.features.queue.blocks.QueueItemRow
 import org.example.ui.features.queue.blocks.QueueSummaryCard
+import org.example.ui.features.queue.blocks.QueueErrorList
 
 @Composable
 fun QueueView(controller: MainController) {
@@ -64,6 +65,11 @@ fun QueueView(controller: MainController) {
         QueueSummaryCard(
             title = controller.lang.get("tab.stats"),
             summary = selectedItem?.summary.orEmpty()
+        )
+
+        QueueErrorList(
+            failedUrls = selectedItem?.failedUrls ?: emptyList(),
+            controller = controller
         )
     }
 }

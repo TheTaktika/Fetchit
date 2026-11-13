@@ -1,6 +1,9 @@
 package org.example.model;
 
 import org.example.ui.LanguageManager;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class DownloadItem {
@@ -13,6 +16,7 @@ public class DownloadItem {
     private byte[] thumbnailData;
     private String speed;
     private String eta;
+    private final List<String> failedUrls = new ArrayList<>();
 
     public DownloadItem(String url, DownloadConfig config) {
         this.url = Objects.requireNonNull(url, LanguageManager.getInstance().get("error.null_url"));
@@ -49,6 +53,14 @@ public class DownloadItem {
     public void setEta(String eta) { this.eta = eta; }
 
     public DownloadConfig getConfig() { return config; }
+
+    public List<String> getFailedUrls() {
+        return failedUrls;
+    }
+
+    public void addFailedUrl(String url) {
+        this.failedUrls.add(url);
+    }
 
     public void cancel() {
         setStatus(DownloadStatus.CANCELLED);

@@ -3,7 +3,6 @@ package org.example.service;
 import org.example.model.*;
 import org.example.scanner.DownloaderScanner;
 import org.example.ui.LanguageManager;
-import org.example.model.StatsFormatter;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -37,6 +36,7 @@ public class QueueDownloadTask implements Runnable {
         PlaylistFetchResult fetchResult = fetchPlaylist(config);
         if (!fetchResult.isSuccess()) {
             item.setStatus(DownloadStatus.ERROR);
+            item.addFailedUrl(item.getUrl());
             return;
         }
 
@@ -122,6 +122,11 @@ public class QueueDownloadTask implements Runnable {
     private void updateFinalStatus(DownloadStats stats) {
         if (stats.getErrorsCount() > 0) {
             item.setStatus(DownloadStatus.ERROR);
+            if (stats.getFailedUrls() != null) {
+                for (String failedUrl : stats.getFailedUrls()) {
+                    item.addFailedUrl(failedUrl);
+                }
+            }
         } else {
             item.setStatus(DownloadStatus.DONE);
             item.setProgress(100.0);

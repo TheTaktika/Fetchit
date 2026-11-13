@@ -23,6 +23,8 @@ class QueueController(
 
     init {
         Thread.startVirtualThread {
+            var wasActive = false
+
             while (true) {
                 Thread.sleep(300)
                 val hasActive = items.any {
@@ -32,6 +34,10 @@ class QueueController(
                 }
                 if (hasActive) {
                     tick++
+                    wasActive = true
+                } else if (wasActive) {
+                    tick++
+                    wasActive = false
                 }
             }
         }
