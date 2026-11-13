@@ -101,7 +101,8 @@ compose.desktop {
 
             jvmArgs += listOf(
                 "-Djavax.net.ssl.trustStoreType=WINDOWS-ROOT",
-                "-Djavax.net.ssl.trustStore=NUL"
+                "-Djavax.net.ssl.trustStore=NUL",
+                "--add-opens", "java.desktop/sun.awt.windows=ALL-UNNAMED"
             )
         }
     }

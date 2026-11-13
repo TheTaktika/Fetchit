@@ -40,10 +40,10 @@ fun AppWindow(onExit: () -> Unit) {
         icon = windowIcon,
         undecorated = false
     ) {
-        WindowStyle(
+        /*WindowStyle(
             isDarkTheme = darkTheme,
             backdropType = WindowBackdrop.Mica
-        )
+        )*/
 
         MaterialTheme(
             colorScheme = if (darkTheme) darkColorScheme() else lightColorScheme()

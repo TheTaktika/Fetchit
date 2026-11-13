@@ -1,106 +1,117 @@
 # FetchIt
 
-**A feature-rich graphical user interface for yt-dlp**
+**A feature-rich graphical user interface for `yt-dlp`**
 
-FetchIt — это десктопное приложение (GUI) для популярного консольного загрузчика `yt-dlp`. Оно создано для тех, кто хочет получить всю мощь `yt-dlp`, но без необходимости запоминать десятки флагов командной строки.
+FetchIt is a desktop GUI application for the popular command-line downloader `yt-dlp`. It is designed for users who want the full power of `yt-dlp` without having to memorize dozens of CLI flags.
 
 [![Latest Release](https://img.shields.io/github/v/release/TheTaktika/Fetchit?color=green&label=latest)](https://github.com/TheTaktika/Fetchit/releases)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/TheTaktika/Fetchit/release.yml)](https://github.com/TheTaktika/Fetchit/actions)
+[![Kotlin](https://img.shields.io/badge/Kotlin-Compose_Multiplatform-blue.svg)](https://kotlinlang.org/)
 [![Java Version](https://img.shields.io/badge/Java-21-blue)](https://jdk.java.net/21/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
-## 📖 Оглавление
+##  Table of Contents
 
-- [Особенности (Features)](#особенности-features)
-- [Установка (Installation)](#установка-installation)
-- [Использование (Usage)](#использование-usage)
-- [Пресеты и Форматы (Presets & Formats)](#пресеты-и-форматы-presets--formats)
-- [Зависимости (Dependencies)](#зависимости)
-- [Сборка из исходников (Compile)](#сборка-из-исходников)
-- [Лицензия (Licensing)](#лицензия)
-
-
----
-
-## Особенности (Features)
-
--  **Извлечение аудио и видео**: Поддержка MP3, FLAC, M4A, MP4, MKV, WEBM.
--  **Умные пресеты**: Создавайте профили настроек (например, «Высокое качество аудио» или «Видео 1080p») и переключайтесь между ними в один клик.
--  **Проверка дублей**: FetchIt считывает ID видео из метаданных уже скачанных файлов, чтобы не загружать их повторно (идеально для обновления плейлистов).
--  **Понятные ошибки**: Встроенный классификатор переводит технические ошибки `yt-dlp` на человеческий язык (например, «Видео недоступно в вашем регионе»).
--  **Мультиязычность (i18n)**: Полная поддержка русского и английского языков с переключением на лету.
--  **Детальный прогресс**: Отдельные индикаторы для общего прогресса плейлиста и текущего загружаемого файла.
--  **Встроенные зависимости**: Установщик уже содержит `yt-dlp`, `ffmpeg` и `deno`. Пользователю не нужно ничего настраивать в системе.
+- [Features](#-features)
+- [Screenshots](#-screenshots)
+- [Installation](#-installation)
+- [Usage](#-usage)
+- [Presets & Formats](#-presets--formats)
+- [Dependencies](#-dependencies)
+- [Compiling from Source](#-compiling-from-source)
+- [License](#-license)
 
 ---
 
-## Установка (Installation)
+##  Features
 
-### Release Files (Рекомендуется)
+- **Audio and Video Extraction**: Support for MP3, FLAC, M4A, MP4, MKV, and WEBM.
+- **Smart Presets**: Create custom profiles (e.g., "High-Quality Audio" or "1080p Video") and switch between them with one click.
+- **Duplicate Check**: FetchIt reads video IDs from the metadata of already downloaded files to avoid re-downloading them (perfect for updating playlists).
+- **Human-Readable Errors**: A built-in classifier translates technical `yt-dlp` errors into plain language (e.g., "Video unavailable in your region").
+- **Internationalization (i18n)**: Full support for English and Russian languages with on-the-fly switching.
+- **Detailed Progress**: Separate indicators for overall playlist progress and the current downloading file.
+- **Bundled Dependencies**: The installer includes `yt-dlp`, `ffmpeg`, and `gjs`. No manual system setup is required.
 
-Перейдите на страницу [Releases](https://github.com/TheTaktika/Fetchit/releases) и скачайте последний установщик `.exe`.
+---
 
-| Файл                | Описание                                                                                    |
+##  Screenshots
+
+*(Replace the placeholders below with actual images. You can upload images to GitHub issues or a `/docs` folder in your repo).*
+
+|            Download View            |          Queue View           |
+|:-----------------------------------:|:-----------------------------:|
+| ![Download View](docs/download.png) | ![Queue View](docs/queue.png) |
+|            **Settings**             |           **Logs**            |
+|   ![Settings](docs/settings.png)    |    ![Logs](docs/logs.png)     |
+
+---
+
+##  Installation
+
+### Release Files (Recommended)
+
+Go to the [Releases](https://github.com/TheTaktika/Fetchit/releases) page and download the latest `.msi` installer.
+
+| File                | Description                                                                                 |
 |:--------------------|:--------------------------------------------------------------------------------------------|
-| `FetchIt-x.x.x.exe` | Готовый установщик для Windows (x64). Содержит встроенную JRE, `yt-dlp`, `ffmpeg` и `deno`. |
+| `FetchIt-x.x.x.msi` | Ready-to-use Windows installer (x64). Includes embedded JRE, `yt-dlp`, `ffmpeg`, and `gjs`. |
 
-### Обновление (Update)
+### Update
 
-FetchIt проверяет обновления встроенного `yt-dlp` через интерфейс программы (кнопка «Обновить yt-dlp»). Для обновления самого приложения достаточно скачать новый установщик из раздела Releases и установить поверх старой версии.
-
----
-
-## Использование (Usage)
-
-1. Запустите FetchIt.
-2. Вставьте ссылку на видео или плейлист в верхнее поле (поддерживаются тысячи сайтов, совместимых с `yt-dlp`).
-3. Выберите папку для сохранения и нужный пресет настроек.
-4. Нажмите **«Скачать»**.
-
-**Особенности загрузки плейлистов:**
-Если вы повторно вставите ссылку на плейлист, который уже частично скачан, FetchIt просканирует папку, считает ID из метаданных и скачает **только новые** или отсутствующие видео.
+FetchIt checks for updates of the embedded `yt-dlp` via the program interface (the "Update yt-dlp" button). To update the application itself, simply download the new `.msi` installer from the Releases section and install it over the old version.
 
 ---
 
-## Пресеты и Форматы (Presets & Formats)
+##  Usage
 
-FetchIt использует систему пресетов, которая заменяет сложные аргументы CLI из `yt-dlp`.
+1. Launch FetchIt.
+2. Paste the link to a video or playlist into the top field (thousands of sites compatible with `yt-dlp` are supported).
+3. Select the destination folder and the desired settings preset.
+4. Click **"Download"**.
 
-В окне «Настройки» вы можете скомбинировать следующие параметры:
-- **Формат**: `audio` (только звук) или `video` (видеофайл).
-- **Аудио формат**: `mp3`, `m4a`, `flac`, `opus`, `wav`.
-- **Аудио качество**: от `0` (лучшее) до `10` (худшее).
-- **Видео качество**: `best`, `2160p` (4K), `1080p`, `720p`, `480p` и т.д.
-- **Метаданные**: Встраивание обложки (`--embed-thumbnail`), тегов (`--add-metadata`) и глав (`--embed-chapters`).
-- **Субтитры**: Сохранение отдельным файлом или встраивание в видео.
-- **SponsorBlock**: Автоматическое удаление спонсорских вставок из YouTube-видео.
-- **Сеть**: Указание прокси, лимитов скорости и количества потоков (фрагментов).
+**Playlist Downloading:**
+If you paste the link to a playlist that is already partially downloaded, FetchIt will scan the folder, read the IDs from the metadata, and download **only the new** or missing videos.
 
 ---
 
-## Зависимости
+##  Presets & Formats
 
-Для своей работы FetchIt использует следующие инструменты. Они **уже включены** в релизный установщик, но требуются при сборке из исходников (кладутся в папку `bundle/`):
+FetchIt uses a preset system that replaces complex CLI arguments of `yt-dlp`.
 
-- **[yt-dlp](https://github.com/yt-dlp/yt-dlp)**: Основной движок для скачивания.
-- **[ffmpeg](https://ffmpeg.org/) / ffprobe**: Необходим для конвертации аудио, слияния видео и встраивания метаданных.
-- **[Deno](https://deno.com/)**: JavaScript-рантайм, необходимый для обхода современных защит YouTube.
+In the "Settings" window, you can combine the following parameters:
+- **Format**: `audio` (audio only) or `video` (video file).
+- **Audio Format**: `mp3`, `m4a`, `flac`, `opus`, `wav`.
+- **Audio Quality**: from `0` (best) to `10` (worst).
+- **Video Quality**: `best`, `2160p` (4K), `1080p`, `720p`, `480p`, etc.
+- **Metadata**: Embed thumbnail (`--embed-thumbnail`), tags (`--add-metadata`), and chapters (`--embed-chapters`).
+- **Subtitles**: Save as a separate file or embed into the video.
+- **SponsorBlock**: Automatically remove sponsor segments from YouTube videos.
+- **Network**: Specify proxy, rate limits, and concurrent fragments.
 
 ---
-## Лицензия
 
-Данный проект распространяется под лицензией MIT.
+##  Dependencies
 
+FetchIt uses the following tools to operate. They are **already included** in the release installer but are required when building from source (place them in the `bundle/` folder):
 
-## Сборка из исходников
+- **[yt-dlp](https://github.com/yt-dlp/yt-dlp)**: The core download engine.
+- **[ffmpeg](https://ffmpeg.org/) / ffprobe**: Required for audio conversion, video merging, and metadata embedding.
+- **[GJS](https://gjs.guide/)**: JavaScript runtime (GNOME JavaScript) required to bypass modern YouTube protections and solve PO Token challenges.
 
-**Требования:**
+---
+
+##  Compiling from Source
+
+**Requirements:**
 - JDK 21 (LTS)
-- Maven 3.8+
-- WiX Toolset 3.x (только для создания `.exe` установщика)
+- Gradle (the project includes a Gradle Wrapper, so a local installation is not strictly necessary)
+- WiX Toolset 3.x (Windows only, required for creating `.msi` installers)
 
-**Запуск в режиме разработки:**
-```bash
-mvn javafx:run
+**Run in development mode:**
+
+* On Windows:
+  ```bash
+  gradlew.bat run

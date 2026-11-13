@@ -93,7 +93,14 @@ public class YtDlpService {
             return PlaylistFetchResult.failure(error);
         }
 
-        return PlaylistFetchResult.success(urls, playlistTitle[0], playlistThumbnail[0]);
+        String finalThumbnail = playlistThumbnail[0];
+
+        if (finalThumbnail == null && !urls.isEmpty()) {
+            String firstVideoUrl = urls.get(0);
+            finalThumbnail = extractThumbnailFromUrl(firstVideoUrl);
+        }
+
+        return PlaylistFetchResult.success(urls, playlistTitle[0], finalThumbnail);
     }
 
     public DownloadStats downloadByIds(DownloadConfig config, List<String> videoUrls, DownloadCallbacks callbacks) {
@@ -220,5 +227,31 @@ public class YtDlpService {
             }
             handleStderrLine(line, parser, stats, callbacks);
         }
+    }
+
+    private String extractThumbnailFromUrl(String videoUrl) {
+        try {
+            if (videoUrl.contains("youtube.com") || videoUrl.contains("youtu.be")) {
+                String videoId = null;
+                if (videoUrl.contains("v=")) {
+                    videoId = videoUrl.substring(videoUrl.indexOf("v=") + 2);
+                    if (videoId.contains("&")) {
+                        videoId = videoId.substring(0, videoId.indexOf("&"));
+                    }
+                } else if (videoUrl.contains("youtu.be/")) {
+                    videoId = videoUrl.substring(videoUrl.indexOf("youtu.be/") + 9);
+                    if (videoId.contains("?")) {
+                        videoId = videoId.substring(0, videoId.indexOf("?"));
+                    }
+                }
+
+                if (videoId != null && !videoId.isEmpty()) {
+                    return "https://img.youtube.com/vi/" + videoId + "/hqdefault.jpg";
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Не удалось извлечь обложку из URL: " + videoUrl);
+        }
+        return null;
     }
 }

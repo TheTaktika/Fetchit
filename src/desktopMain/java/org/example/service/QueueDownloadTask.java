@@ -150,26 +150,10 @@ public class QueueDownloadTask implements Runnable {
     }
 
     private void updateItemMetadata(DownloadItem item, String title, String thumbUrl) {
-        if (title != null && !"NA".equals(title)) {
-            item.setTitle(title);
-        }
-        if (thumbUrl != null && !"NA".equals(thumbUrl)) {
-            String safeUrl = thumbUrl.replace("vi_webp", "vi").replace(".webp", ".jpg");
+        updateTitle(item, title);
 
-            Thread.startVirtualThread(() -> {
-                try {
-                    URL url = URI.create(safeUrl).toURL();
-                    try (InputStream in = url.openStream();
-                         ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-                        byte[] buffer = new byte[4096];
-                        int bytesRead;
-                        while ((bytesRead = in.read(buffer)) != -1) {
-                            out.write(buffer, 0, bytesRead);
-                        }
-                        item.setThumbnailData(out.toByteArray());
-                    }
-                } catch (Exception ignored) {}
-            });
+        if (thumbUrl != null && !"NA".equals(thumbUrl)) {
+            downloadThumbnailAsync(item, thumbUrl);
         }
     }
 
@@ -209,5 +193,51 @@ public class QueueDownloadTask implements Runnable {
         p.setSplitChapters(original.isSplitChapters());
         p.setForceOverwrites(original.isForceOverwrites());
         return p;
+    }
+
+    private void updateTitle(DownloadItem item, String title) {
+        if (title != null && !"NA".equals(title)) {
+            item.setTitle(title);
+        }
+    }
+
+    private void downloadThumbnailAsync(DownloadItem item, String thumbUrl) {
+        Thread.startVirtualThread(() -> {
+            try {
+                byte[] imageBytes = fetchImageBytes(thumbUrl);
+
+                if (imageBytes != null && imageBytes.length > 0) {
+                    item.setThumbnailData(imageBytes);
+                } else {
+                    System.err.println("Обложка скачалась, но массив байтов пустой: " + thumbUrl);
+                }
+            } catch (Exception e) {
+                System.err.println("Ошибка загрузки обложки для URL: " + thumbUrl + " | " + e.getMessage());
+            }
+        });
+    }
+
+    private byte[] fetchImageBytes(String imageUrl) throws Exception {
+        URL url = URI.create(imageUrl).toURL();
+        java.net.HttpURLConnection connection = (java.net.HttpURLConnection) url.openConnection();
+
+        try {
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+            connection.setConnectTimeout(10000);
+            connection.setReadTimeout(10000);
+
+            try (InputStream in = connection.getInputStream();
+                 ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+                while ((bytesRead = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, bytesRead);
+                }
+                return out.toByteArray();
+            }
+        } finally {
+            connection.disconnect();
+        }
     }
 }
