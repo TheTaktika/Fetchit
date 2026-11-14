@@ -84,3 +84,5 @@ presets.json
 /.gradle/buildOutputCleanup/outputFiles.bin
 /.gradle/vcs-1/gc.properties
 /.gradle/file-system.probe
+/.gradle/9.0.0/expanded/expanded.lock
+/.gradle/

@@ -27,23 +27,30 @@ public class YtDlpPathResolver {
     }
 
     private File resolveBundleDir() {
+        String composeResourcesDir = System.getProperty("compose.application.resources.dir");
+        if (composeResourcesDir != null) {
+            File resDir = new File(composeResourcesDir);
+            if (resDir.exists() && resDir.isDirectory()) {
+                return resDir;
+            }
+        }
+
+        File devBundle = new File("bundle/common");
+        if (devBundle.exists() && devBundle.isDirectory()) {
+            return devBundle;
+        }
+
         try {
             File codeSource = new File(
                     YtDlpPathResolver.class.getProtectionDomain()
                             .getCodeSource().getLocation().toURI()
             );
             File appDir = codeSource.getParentFile();
-            File rootDir = appDir.getParentFile();
-            File bundle = new File(rootDir, "bundle");
-            if (bundle.exists() && bundle.isDirectory()) {
-                return bundle;
+            File resourcesDir = new File(appDir, "resources");
+            if (resourcesDir.exists() && resourcesDir.isDirectory()) {
+                return resourcesDir;
             }
         } catch (Exception ignored) {
-        }
-
-        File devBundle = new File("bundle");
-        if (devBundle.exists() && devBundle.isDirectory()) {
-            return devBundle;
         }
 
         return null;

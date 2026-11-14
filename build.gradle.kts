@@ -88,7 +88,8 @@ compose.desktop {
             targetFormats(org.jetbrains.compose.desktop.application.dsl.TargetFormat.Msi)
             packageName = "FetchIt"
             packageVersion = "1.0.0"
-
+            appResourcesRootDir.set(project.layout.projectDirectory.dir("bundle"))
+            modules("jdk.crypto.mscapi")
             windows {
                 console = false
                 shortcut = true
