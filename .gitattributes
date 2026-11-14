@@ -1,0 +1,7 @@
+*.kt linguist-language=Kotlin
+*.kts linguist-language=Kotlin
+
+gradlew linguist-vendored
+gradlew.bat linguist-vendored
+gradle/** linguist-vendored
+build/** linguist-vendored

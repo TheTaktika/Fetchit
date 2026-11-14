@@ -39,8 +39,6 @@ FetchIt is a desktop GUI application for the popular command-line downloader `yt
 
 ##  Screenshots
 
-*(Replace the placeholders below with actual images. You can upload images to GitHub issues or a `/docs` folder in your repo).*
-
 |            Download View            |          Queue View           |
 |:-----------------------------------:|:-----------------------------:|
 | ![Download View](docs/download.png) | ![Queue View](docs/queue.png) |
